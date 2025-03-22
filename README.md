@@ -9,7 +9,7 @@
 Owntrack-rs is a self-hosted GPS tracking solution that allows you to record and manage your location data from mobile phones or IoT devices.
 It provides [OwnTracks](https://owntracks.org/booklet/) compatible HTTP and MQTT endpoints and a built-in viewer application.
 
-![Screenshot](images/screenshot.jpg)
+![Screenshot](static/screenshot.jpg)
 
 <pre>
 Features:
@@ -136,7 +136,7 @@ The [OwnTracks](https://owntracks.org/booklet/) apps can be used in MQTT or HTTP
 
 |  iOS   | Android |
 | :----: | :-----: |
-| [![AppStore](images/appstore.png)](https://apps.apple.com/us/app/owntracks/id692424691) | [![PlayStore](images/playstore.png)](https://play.google.com/store/apps/details?id=org.owntracks.android) |
+| [![AppStore](static/appstore.png)](https://apps.apple.com/us/app/owntracks/id692424691) | [![PlayStore](static/playstore.png)](https://play.google.com/store/apps/details?id=org.owntracks.android) |
 
 For configuring the app, open the setup page of your hosted domain e.g. at `https://owntracks.example.org/setup`.
 
