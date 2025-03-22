@@ -1,0 +1,9 @@
+{
+  "build": {
+    "static_dir": "images",
+    "path_prefix": "owntrack-rs"
+  },
+  "styles": {
+    "theme": "cupcake"
+  }
+}

@@ -1,4 +1,8 @@
+<div class="oranda-hide">
+
 # Owntrack-rs
+
+</div>
 
 ## Overview
 
@@ -7,6 +11,7 @@ It provides [OwnTracks](https://owntracks.org/booklet/) compatible HTTP and MQTT
 
 ![Screenshot](images/screenshot.jpg)
 
+<pre>
 Features:
 - [x] Owntracks compatible HTTP endpoint
 - [x] Owntracks compatible MQTT interface
@@ -16,6 +21,7 @@ Features:
 - [x] Built-In Viewer
 - [ ] Password protected and public views
 - [x] Mobile friendly vector tile maps
+</pre>
 
 ## Installation
 
@@ -143,6 +149,8 @@ Send a POST request to the `owntracks` endpoint:
 curl --data '{"_type":"location","lat":48.856826,"lon":2.292713,"tid":"me","tst":'$(date +%s)'}' -H "Content-Type: application/json" "http://127.0.0.1:8083/owntracks?u=me&d=mydevice"
 ```
 
+<div class="oranda-hide">
+
 ## Development
 
 ### Prerequisites
@@ -169,3 +177,5 @@ npm install
 ```
 npm run dev
 ```
+
+</div>

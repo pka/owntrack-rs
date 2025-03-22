@@ -1,4 +1,5 @@
 /target
+/public
 /duckdb
 /.env
 /*.sqlite*
