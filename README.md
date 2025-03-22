@@ -132,6 +132,8 @@ The [OwnTracks](https://owntracks.org/booklet/) apps can be used in MQTT or HTTP
 | :----: | :-----: |
 | [![AppStore](images/appstore.png)](https://apps.apple.com/us/app/owntracks/id692424691) | [![PlayStore](images/playstore.png)](https://play.google.com/store/apps/details?id=org.owntracks.android) |
 
+For configuring the app, open the setup page of your hosted domain e.g. at `https://owntracks.example.org/setup`.
+
 - [Configure the Android app](https://owntracks.org/booklet/guide/app/android/)
 
 ### Use your own devices

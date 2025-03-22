@@ -4,8 +4,8 @@ use crate::gpx;
 use crate::owntracks::{otrc_json, AppConfig, Message};
 use actix_cors::Cors;
 use actix_web::{
-    error, get, middleware, middleware::Logger, post, route, web, App, HttpResponse, HttpServer,
-    Responder,
+    error, get, middleware, middleware::Logger, post, route, web, App, HttpRequest, HttpResponse,
+    HttpServer, Responder,
 };
 use actix_web_rust_embed_responder::{EmbedResponse, EmbedableFileResponse, IntoResponse};
 use rust_embed_for_web::RustEmbed;
@@ -168,8 +168,16 @@ async fn positions(db: web::Data<Db>, params: web::Query<TracksParams>) -> HttpR
 }
 
 #[get("/otrc")]
-async fn otrc() -> actix_web::Result<impl Responder> {
-    let otrc = otrc_json(&AppConfig::from_env());
+async fn otrc(db: web::Data<Db>, req: HttpRequest) -> actix_web::Result<impl Responder> {
+    match db.is_valid_invite().await {
+        Ok(false) | Err(_) => {
+            return Err(actix_web::error::ErrorForbidden(""));
+        }
+        _ => {}
+    }
+    let conn = req.connection_info();
+    let url = format!("{}://{}", conn.scheme(), conn.host());
+    let otrc = otrc_json(&AppConfig::from_env(Some(url)));
     Ok(web::Json(otrc))
 }
 
@@ -180,10 +188,10 @@ struct Embed;
 // This responder implements both GET and HEAD
 #[route("/{path:.*}", method = "GET", method = "HEAD")]
 async fn serve_assets(path: web::Path<String>) -> EmbedResponse<EmbedableFileResponse> {
-    let path = if path.is_empty() {
-        "index.html"
-    } else {
-        path.as_str()
+    let path = match path.as_str() {
+        "" => "index.html",
+        "setup" => "setup.html",
+        p => p,
     };
     Embed::get(path).into_response()
 }

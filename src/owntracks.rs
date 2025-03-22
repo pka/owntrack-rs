@@ -169,12 +169,13 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn from_env() -> Self {
+    pub fn from_env(req_url: Option<String>) -> Self {
         let username = dotenvy::var("OTRS_USERNAME").unwrap_or("me".to_string());
         let device_id = dotenvy::var("OTRS_DEVICE_ID").unwrap_or("mobile".to_string());
         let tid = dotenvy::var("OTRS_TID").unwrap_or(username.chars().take(2).collect::<String>());
         let http_address = dotenvy::var("HTTP_ADDRESS").unwrap_or("localhost".to_string());
-        let http_url = dotenvy::var("OTRS_BASE_URL").unwrap_or(format!("https://{http_address}"))
+        let http_url = dotenvy::var("OTRS_BASE_URL")
+            .unwrap_or(req_url.unwrap_or(format!("https://{http_address}")))
             + &format!("/owntracks?u={username}&d={device_id}");
         let tls = http_url.starts_with("https://");
         AppConfig {

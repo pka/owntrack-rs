@@ -262,6 +262,22 @@ impl Db {
 
         Ok(positions)
     }
+
+    /// Check validity of invite
+    pub async fn is_valid_invite(&self) -> anyhow::Result<bool> {
+        // Check URL token for friend invites (TODO)
+        // For initial setup check existence of devices
+        let initial_device = sqlx::query_scalar(
+            r#"
+                SELECT COUNT(*) = 0
+                FROM devices
+                "#,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(initial_device)
+    }
 }
 
 pub fn serialize_raw_json<S: Serializer>(v: &str, s: S) -> Result<S::Ok, S::Error> {
