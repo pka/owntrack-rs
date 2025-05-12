@@ -36,6 +36,34 @@ async fn owntracks(
     Ok(web::Json::<Vec<Message>>(Vec::new()))
 }
 
+/// Generic JSON endpoint
+#[post("/rawjson")]
+async fn rawjson(body: String) -> actix_web::Result<impl Responder> {
+    // https://github.com/tszheichoi/awesome-sensor-logger
+    // {
+    //     "messageId": 30,
+    //     "sessionId": "7123c623-110c-4cb7-ac56-f7a2402118ab",
+    //     "deviceId": "dcfb8d93-d144-4d19-9752-e296a96d7136",
+    //     "payload": [{
+    //         "values": {
+    //             "bearingAccuracy": 45,
+    //             "speedAccuracy": 1.5,
+    //             "verticalAccuracy": 0.6529032588005066,
+    //             "horizontalAccuracy": 15.60099983215332,
+    //             "speed": 0.16229715943336487,
+    //             "bearing": 201.24215698242188,
+    //             "altitude": 549.7999877929688,
+    //             "longitude": 9.4370853,
+    //             "latitude": 47.0496454
+    //         },
+    //         "name": "location",
+    //         "time": 1745600807648164600
+    //     }]
+    // }
+    log::info!("{body}");
+    Ok("ok")
+}
+
 #[derive(Deserialize)]
 struct TracksParams {
     date: String,
@@ -229,6 +257,7 @@ pub async fn webserver(db: Db) -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(db.clone()))
             .service(owntracks)
+            .service(rawjson)
             .service(trackinfos)
             .service(gpxtrack)
             .service(track)

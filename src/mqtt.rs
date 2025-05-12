@@ -1,8 +1,10 @@
 use crate::db::Db;
-use crate::owntracks::Message;
+use crate::meshtastic;
+use crate::owntracks;
 use gethostname::gethostname;
 use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
 use std::process;
+use std::str::FromStr;
 use std::time::Duration;
 use tokio::time;
 
@@ -36,21 +38,54 @@ pub async fn subscribe(db: &Db) -> anyhow::Result<()> {
                     packet.topic,
                     String::from_utf8_lossy(packet.payload.as_ref()),
                 );
-                let msg: Message = match serde_json::from_slice(packet.payload.as_ref()) {
-                    Ok(msg) => msg,
-                    Err(e) => {
-                        log::error!("{e}");
-                        continue;
+                if let Ok(msg) =
+                    serde_json::from_slice::<owntracks::Message>(packet.payload.as_ref())
+                {
+                    log::debug!("{msg:?}");
+                    if let owntracks::Message::Location(loc) = msg {
+                        let Some((user, device)) = get_user_device_from_topic(&packet.topic) else {
+                            log::error!("Unexpected topic `{}`", packet.topic);
+                            continue;
+                        };
+                        if let Err(e) = db.insert_location(&user, &device, &loc).await {
+                            log::error!("{e}");
+                        }
                     }
-                };
-                log::debug!("{msg:?}");
-                if let Message::Location(loc) = msg {
-                    let Some((user, device)) = get_user_device_from_topic(&packet.topic) else {
-                        log::error!("Unexpected topic `{}`", packet.topic);
-                        continue;
-                    };
-                    if let Err(e) = db.insert_location(&user, &device, &loc).await {
-                        log::error!("{e}");
+                } else if let Ok(msg) =
+                    serde_json::from_slice::<meshtastic::Message>(packet.payload.as_ref())
+                {
+                    log::debug!("{msg:?}");
+                    if let meshtastic::Message::Position(pos) = msg {
+                        // Skip other devices
+                        if pos.hops_away > 0 {
+                            continue;
+                        }
+                        let Some((user, device)) =
+                            get_user_device_from_meshtastic_topic(&packet.topic)
+                        else {
+                            log::error!("Unexpected topic `{}`", packet.topic);
+                            continue;
+                        };
+                        let mut lat_str = pos.payload.latitude_i.to_string();
+                        lat_str.insert(lat_str.len() - 7, '.'); // 470401765 -> 47.0401765
+                        let mut lon_str = pos.payload.longitude_i.to_string();
+                        lon_str.insert(lon_str.len() - 7, '.');
+                        let loc = owntracks::Location {
+                            tid: "msh".to_string(),
+                            ts: pos.payload.time,
+                            velocity: pos.payload.ground_speed,
+                            lat: f32::from_str(&lat_str).unwrap(),
+                            lon: f32::from_str(&lon_str).unwrap(),
+                            alt: pos.payload.altitude,
+                            accuracy: None,
+                            v_accuracy: None,
+                            cog: None,
+                            annotations: pos.payload.annotations,
+                        };
+                        log::debug!("{loc:?}");
+                        if let Err(e) = db.insert_location(&user, &device, &loc).await {
+                            log::error!("{e}");
+                        }
                     }
                 }
             }
@@ -72,5 +107,16 @@ pub fn get_user_device_from_topic(topic: &str) -> Option<(String, String)> {
     }
     let user = parts[1].to_string();
     let device = parts[2].to_string();
+    Some((user, device))
+}
+
+pub fn get_user_device_from_meshtastic_topic(topic: &str) -> Option<(String, String)> {
+    // topic: "owntracks/{user}/msh/{device}/2/json/LongFast/!xxxx{device}"
+    let parts: Vec<&str> = topic.split('/').collect();
+    if parts.len() != 8 {
+        return None;
+    }
+    let user = parts[1].to_string();
+    let device = parts[3].to_string();
     Some((user, device))
 }

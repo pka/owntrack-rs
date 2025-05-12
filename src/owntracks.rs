@@ -121,7 +121,7 @@ pub struct Location {
     /// longitude (iOS,Android/float/degree/required)
     pub lon: f32,
     /// Altitude measured above sea level (iOS,Android/integer/meters/optional)
-    pub alt: Option<u16>,
+    pub alt: Option<i16>,
     /// Accuracy of the reported location in meters without unit (iOS,Android/integer/meters/optional)
     #[serde(rename = "acc")]
     pub accuracy: Option<u32>,
