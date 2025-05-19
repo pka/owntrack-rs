@@ -57,9 +57,9 @@ pub async fn subscribe(db: &Db) -> anyhow::Result<()> {
                     log::debug!("{msg:?}");
                     if let meshtastic::Message::Position(pos) = msg {
                         // Skip other devices
-                        if pos.hops_away > 0 {
-                            continue;
-                        }
+                        // if pos.hops_away > 0 {
+                        //     continue;
+                        // }
                         let Some((user, device)) =
                             get_user_device_from_meshtastic_topic(&packet.topic)
                         else {
@@ -71,7 +71,7 @@ pub async fn subscribe(db: &Db) -> anyhow::Result<()> {
                         let mut lon_str = pos.payload.longitude_i.to_string();
                         lon_str.insert(lon_str.len() - 7, '.');
                         let loc = owntracks::Location {
-                            tid: "msh".to_string(),
+                            tid: device.to_string(), // userid[userid.len() - 4..].to_string()
                             ts: pos.payload.time,
                             velocity: pos.payload.ground_speed,
                             lat: f32::from_str(&lat_str).unwrap(),
@@ -111,7 +111,9 @@ pub fn get_user_device_from_topic(topic: &str) -> Option<(String, String)> {
 }
 
 pub fn get_user_device_from_meshtastic_topic(topic: &str) -> Option<(String, String)> {
-    // topic: "owntracks/{user}/msh/{device}/2/json/LongFast/!xxxx{device}"
+    // topic position message: "owntracks/{user}/msh/{device}/2/json/{channel}/{userid}"
+    // binary: "owntracks/{user}/msh/{device}/2/e/{channel}/{userid}"
+    // topic node message: "owntracks/{user}/msh/2/json/{channel}/{userid}"
     let parts: Vec<&str> = topic.split('/').collect();
     if parts.len() != 8 {
         return None;
