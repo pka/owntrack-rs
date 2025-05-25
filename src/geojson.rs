@@ -30,7 +30,7 @@ pub fn track(tracks: &[TrackData]) -> anyhow::Result<String> {
     let features: Vec<Feature> = tracks
         .iter()
         .map(|track| {
-            let points = track.points.iter().filter(|point| {
+            let mut points = track.points.iter().filter(|point| {
                 // keep only points within accuracy
                 point.accuracy.unwrap_or(0) < MAX_ACCURACY
             });
@@ -39,7 +39,7 @@ pub fn track(tracks: &[TrackData]) -> anyhow::Result<String> {
             ));
             let bbox = BboxStats::from_xy_iter(points.clone().map(|pt| (pt.x, pt.y))).bbox();
             // Use properties of last point
-            let properties = points.last().map(point_properties);
+            let properties = points.next_back().map(point_properties);
             Feature {
                 geometry: Some(geometry),
                 properties,
