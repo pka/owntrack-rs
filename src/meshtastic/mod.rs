@@ -1,3 +1,5 @@
+//! Meshtastic integration via MQTT: <https://meshtastic.org/docs/software/integrations/mqtt/>
+
 pub(crate) mod protobufs;
 
 use crate::db::Db;
@@ -22,7 +24,7 @@ pub async fn decode_packet(
             match packet_data.portnum() {
                 protobufs::PortNum::PositionApp => {
                     let position = protobufs::Position::decode(packet_data.payload.as_slice())?;
-                    log::info!("Position packet: {position:?}");
+                    log::info!("<{device}> {position:?}");
                     // Position { latitude_i: Some(470400000), longitude_i: Some(94300000), altitude: Some(491), time: 1748123191, location_source: LocInternal, altitude_source: AltUnset, timestamp: 0, timestamp_millis_adjust: 0, altitude_hae: None, altitude_geoidal_separation: None, pdop: 149, hdop: 0, vdop: 0,
                     //  gps_accuracy: 0, ground_speed: Some(0), ground_track: Some(18928000), fix_quality: 0, fix_type: 0, sats_in_view: 10, sensor_id: 0, next_update: 0, seq_number: 0, precision_bits: 32 }
                     if let Some(loc) = position_to_location(device, position) {
@@ -33,17 +35,15 @@ pub async fn decode_packet(
                 }
                 protobufs::PortNum::NodeinfoApp => {
                     let user = protobufs::User::decode(packet_data.payload.as_slice())?;
-                    log::info!("User packet: {user:?}");
+                    log::info!("<{device}> {user:?}");
                     // User { id: "!12341234", long_name: "My Tracker", short_name: "1234", macaddr: [...], hw_model: TrackerT1000E, is_licensed: false, role: Client, public_key: [...], is_unmessagable: None }
                 }
                 protobufs::PortNum::TelemetryApp => {
                     let telemetry = protobufs::Telemetry::decode(packet_data.payload.as_slice())?;
-                    log::info!("Telemetry packet: {telemetry:?}");
+                    log::info!("<{device}> {telemetry:?}");
                     // Telemetry { time: 1748124056, variant: Some(DeviceMetrics(DeviceMetrics { battery_level: Some(28), voltage: Some(3.788), channel_utilization: Some(8.636667), air_util_tx: Some(0.029166665), uptime_seconds: Some(66) })) }
                 }
-                _ => {
-                    log::debug!("Mesh packet on port {:?} ignored", packet_data.portnum);
-                }
+                _ => {}
             }
         }
     }

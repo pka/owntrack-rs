@@ -7,7 +7,8 @@
 ## Overview
 
 Owntrack-rs is a self-hosted GPS tracking solution that allows you to record and manage your location data from mobile phones or IoT devices.
-It provides [OwnTracks](https://owntracks.org/booklet/) compatible HTTP and MQTT endpoints and a built-in viewer application.
+It provides [OwnTracks](https://owntracks.org/booklet/) compatible HTTP and MQTT endpoints, [Meshtastic](https://meshtastic.org/) MQTT integration
+and a built-in viewer application.
 
 ![Screenshot](static/screenshot.jpg)
 
@@ -15,6 +16,7 @@ It provides [OwnTracks](https://owntracks.org/booklet/) compatible HTTP and MQTT
 Features:
 - [x] Owntracks compatible HTTP endpoint
 - [x] Owntracks compatible MQTT interface
+- [x] Meshtastic compatible MQTT interface
 - [x] SQLite local file storage
 - [x] PostgreSQL database storage
 - [x] GeoJSON and GPX track exports
@@ -141,6 +143,33 @@ The [OwnTracks](https://owntracks.org/booklet/) apps can be used in MQTT or HTTP
 For configuring the app, open the setup page of your hosted domain e.g. at `https://owntracks.example.org/setup`.
 
 - [Configure the Android app](https://owntracks.org/booklet/guide/app/android/)
+
+### Meshtastic devices
+
+[Meshtastic](https://meshtastic.org/) devices can be integrated via [MQTT](https://meshtastic.org/docs/software/integrations/mqtt/).
+
+Setup [channel](https://meshtastic.org/docs/configuration/radio/channels/) on nodes:
+* Setup a **primary** channel with a private `PSK`
+* Activate `uplink_enabled` and `downlink_enabled` (optional)
+* Set `position_precision` to `32` (full precision)
+
+Configure [position](https://meshtastic.org/docs/configuration/radio/position/) on nodes:
+* Example values for a tracking node:
+  * `position.gps_update_interval`: 10 seconds
+  * `position.position_broadcast_smart_enabled`: `true`
+  * `position.broadcast_smart_minimum_distance`: 10 metres
+  * `position.broadcast_smart_minimum_interval_secs`: 10 seconds
+  * `position.position_broadcast_secs`: 120 seconds
+
+Setup an MQTT gateway node:
+* Connect your gateway node to wifi, by setting the `network.wifi_ssid`, `network.wifi_psk` and `network.wifi_enabled` preferences.
+* Configure your (MQTT settings)[https://meshtastic.org/docs/configuration/module/mqtt/]: `mqtt.address`, `mqtt.username`, and `mqtt.password`.
+  * `mqtt.encryption_enabled`: `false`
+  * `mqtt.json_enabled`: `false`
+  * `mqtt.tls_enabled`: according to your MQTT server setup
+  * `mqtt.root`: according to your MQTT server setup. For an OnwTracks compatible setup use e.g. `owntracks/<user>/msh`.
+
+Tested with Firmware 2.6.4.
 
 ### Use your own devices
 

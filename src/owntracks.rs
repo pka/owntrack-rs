@@ -1,3 +1,5 @@
+//! [OwnTracks](https://owntracks.org/booklet/) integration
+
 use crate::db::{deserialize_dict_to_string, serialize_raw_json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
