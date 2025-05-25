@@ -2,6 +2,7 @@ pub mod db;
 mod geojson;
 mod gpx;
 mod http;
+mod meshtastic;
 mod mqtt;
 mod owntracks;
 mod stats;

@@ -1,6 +1,8 @@
 use crate::db::Db;
-use crate::owntracks::Message;
+use crate::meshtastic;
+use crate::owntracks;
 use gethostname::gethostname;
+use prost::Message;
 use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
 use std::process;
 use std::time::Duration;
@@ -31,25 +33,32 @@ pub async fn subscribe(db: &Db) -> anyhow::Result<()> {
         log::debug!("Notification = {notification:?}");
         match notification {
             Ok(Event::Incoming(Incoming::Publish(packet))) => {
-                log::info!(
+                log::debug!(
                     "{}: {}",
                     packet.topic,
                     String::from_utf8_lossy(packet.payload.as_ref()),
                 );
-                let msg: Message = match serde_json::from_slice(packet.payload.as_ref()) {
-                    Ok(msg) => msg,
-                    Err(e) => {
-                        log::error!("{e}");
-                        continue;
+                if let Ok(msg) =
+                    serde_json::from_slice::<owntracks::Message>(packet.payload.as_ref())
+                {
+                    log::debug!("{msg:?}");
+                    if let owntracks::Message::Location(loc) = msg {
+                        let Some((user, device)) = get_user_device_from_topic(&packet.topic) else {
+                            log::error!("Unexpected topic `{}`", packet.topic);
+                            continue;
+                        };
+                        if let Err(e) = db.insert_location(&user, &device, &loc).await {
+                            log::error!("{e}");
+                        }
                     }
-                };
-                log::debug!("{msg:?}");
-                if let Message::Location(loc) = msg {
+                } else if let Ok(msg) =
+                    meshtastic::protobufs::ServiceEnvelope::decode(packet.payload.as_ref())
+                {
                     let Some((user, device)) = get_user_device_from_topic(&packet.topic) else {
                         log::error!("Unexpected topic `{}`", packet.topic);
                         continue;
                     };
-                    if let Err(e) = db.insert_location(&user, &device, &loc).await {
+                    if let Err(e) = meshtastic::decode_packet(db, &user, &device, &msg).await {
                         log::error!("{e}");
                     }
                 }
@@ -66,11 +75,12 @@ pub async fn subscribe(db: &Db) -> anyhow::Result<()> {
 
 pub fn get_user_device_from_topic(topic: &str) -> Option<(String, String)> {
     // topic: "onwntrack/{user}/{device}"
+    // meshtastic: "owntracks/{user}/msh/2/e/{channel}/{userid}"
     let parts: Vec<&str> = topic.split('/').collect();
-    if parts.len() != 3 {
+    if parts.len() < 3 {
         return None;
     }
     let user = parts[1].to_string();
-    let device = parts[2].to_string();
+    let device = parts[parts.len() - 1].to_string();
     Some((user, device))
 }
