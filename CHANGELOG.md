@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0 - 2025-05-25
+
+- Initial support for Meshtastic devices
+
 ## 0.6.2 - 2025-03-22
 
 - Setup page with OwnTracks configuration
