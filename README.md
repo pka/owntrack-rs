@@ -161,6 +161,10 @@ Configure [position](https://meshtastic.org/docs/configuration/radio/position/) 
   * `position.broadcast_smart_minimum_interval_secs`: 10 seconds
   * `position.position_broadcast_secs`: 120 seconds
 
+Configure [LoRa](https://meshtastic.org/docs/configuration/radio/lora/) on nodes:
+* `lora.ignore_mqtt`: `false`
+* `lora.config_ok_to_mqtt`: `true`
+
 Setup an MQTT gateway node:
 * Connect your gateway node to wifi, by setting the `network.wifi_ssid`, `network.wifi_psk` and `network.wifi_enabled` preferences.
 * Configure your (MQTT settings)[https://meshtastic.org/docs/configuration/module/mqtt/]: `mqtt.address`, `mqtt.username`, and `mqtt.password`.
