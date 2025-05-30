@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1 - 2025-05-30
+
+- Use from address in envelope as device name
+
 ## 0.7.0 - 2025-05-25
 
 - Initial support for Meshtastic devices
