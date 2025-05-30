@@ -54,11 +54,7 @@ pub async fn subscribe(db: &Db) -> anyhow::Result<()> {
                 } else if let Ok(msg) =
                     meshtastic::protobufs::ServiceEnvelope::decode(packet.payload.as_ref())
                 {
-                    let Some((user, device)) = get_user_device_from_topic(&packet.topic) else {
-                        log::error!("Unexpected topic `{}`", packet.topic);
-                        continue;
-                    };
-                    if let Err(e) = meshtastic::decode_packet(db, &user, &device, &msg).await {
+                    if let Err(e) = meshtastic::decode_packet(db, &msg).await {
                         log::error!("{e}");
                     }
                 }

@@ -9,8 +9,6 @@ use std::str::FromStr;
 
 pub async fn decode_packet(
     db: &Db,
-    user: &str,
-    _device: &str, // TODO: get device name from User packet via mesh_packet.from
     envelope: &protobufs::ServiceEnvelope,
 ) -> Result<(), prost::DecodeError> {
     fn log_mesh_packet<T: std::fmt::Debug>(
@@ -27,12 +25,12 @@ pub async fn decode_packet(
             if packet_data.want_response { "?" } else { "" }
         );
     }
-    // log::debug!("{envelope:?}");
+    log::debug!("{envelope:?}");
     // ServiceEnvelope { packet: Some(MeshPacket { from: 3257392698, to: 4294967295, channel: 0, id: 786780598, rx_time: 1748123191, rx_snr: 0.0, hop_limit: 3, want_ack: false, priority: Background, rx_rssi: 0, delayed: NoDelay, via_mqtt: false, hop_start: 3, public_key: [], pki_encrypted: false, next_hop: 0, relay_node: 58, tx_after: 0,
     //   payload_variant: Some(Decoded(Data { portnum: PositionApp, payload: [...], want_response: false, dest: 0, source: 0, request_id: 0, reply_id: 0, emoji: 0, bitfield: None })) }),
     //   channel_id: "Tracking", gateway_id: "!12341234" }
     if let Some(ref mesh_packet) = envelope.packet {
-        let node = format!("!{:08x}", mesh_packet.from);
+        let node = format!("!{:08x}", mesh_packet.from); // TODO: get device name from User packet
         if let Some(protobufs::mesh_packet::PayloadVariant::Decoded(ref packet_data)) =
             mesh_packet.payload_variant
         {
@@ -44,7 +42,9 @@ pub async fn decode_packet(
                     //  gps_accuracy: 0, ground_speed: Some(0), ground_track: Some(18928000), fix_quality: 0, fix_type: 0, sats_in_view: 10, sensor_id: 0, next_update: 0, seq_number: 0, precision_bits: 32 }
                     if !packet_data.want_response {
                         if let Some(loc) = position_to_location(&node[5..], position) {
-                            if let Err(e) = db.insert_location(user, &node, &loc).await {
+                            if let Err(e) =
+                                db.insert_location(&envelope.channel_id, &node, &loc).await
+                            {
                                 log::error!("{e}");
                             }
                         }
@@ -61,6 +61,7 @@ pub async fn decode_packet(
                     // Telemetry { time: 1748124056, variant: Some(DeviceMetrics(DeviceMetrics { battery_level: Some(28), voltage: Some(3.788), channel_utilization: Some(8.636667), air_util_tx: Some(0.029166665), uptime_seconds: Some(66) })) }
                 }
                 p => {
+                    // MapReportApp, NeighborinfoApp, ...
                     log::info!(
                         "@{} !{:08x}->!{:08x}  unhandled portnum {p:?} {envelope:?}",
                         envelope.channel_id,
