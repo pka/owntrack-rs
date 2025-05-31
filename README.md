@@ -167,7 +167,7 @@ Configure [LoRa](https://meshtastic.org/docs/configuration/radio/lora/) on nodes
 
 Setup an MQTT gateway node:
 * Connect your gateway node to wifi, by setting the `network.wifi_ssid`, `network.wifi_psk` and `network.wifi_enabled` preferences.
-* Configure your (MQTT settings)[https://meshtastic.org/docs/configuration/module/mqtt/]: `mqtt.address`, `mqtt.username`, and `mqtt.password`.
+* Configure your [MQTT settings]([https://meshtastic.org/docs/configuration/module/mqtt/): `mqtt.address`, `mqtt.username`, and `mqtt.password`.
   * `mqtt.encryption_enabled`: `false`
   * `mqtt.json_enabled`: `false`
   * `mqtt.tls_enabled`: according to your MQTT server setup

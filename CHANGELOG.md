@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.7.2 - 2025-05-31
+
+- Use Mestastic channel as user name
+
 ## 0.7.1 - 2025-05-30
 
-- Use from address in envelope as device name
+- Use `from` address in envelope as device name
 
 ## 0.7.0 - 2025-05-25
 

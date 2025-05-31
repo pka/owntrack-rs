@@ -61,7 +61,7 @@ pub async fn decode_packet(
                     // Telemetry { time: 1748124056, variant: Some(DeviceMetrics(DeviceMetrics { battery_level: Some(28), voltage: Some(3.788), channel_utilization: Some(8.636667), air_util_tx: Some(0.029166665), uptime_seconds: Some(66) })) }
                 }
                 p => {
-                    // MapReportApp, NeighborinfoApp, ...
+                    // MapReportApp, NeighborinfoApp, RoutingApp, ...
                     log::info!(
                         "@{} !{:08x}->!{:08x}  unhandled portnum {p:?} {envelope:?}",
                         envelope.channel_id,
