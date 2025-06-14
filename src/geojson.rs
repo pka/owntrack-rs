@@ -8,7 +8,6 @@ const ANNOTATIONS_SKIP_LIST: &[&str] = &["_id", "m", "BSSID", "SSID", "created_a
 fn point_properties(pt: &GpsPoint) -> JsonObject {
     let mut json = JsonObject::from_iter([
         ("time".to_string(), JsonValue::from(pt.ts.to_string())),
-        ("tid".to_string(), JsonValue::from(pt.tid.clone())),
         ("speed".to_string(), JsonValue::from(pt.speed)),
         ("elevation".to_string(), JsonValue::from(pt.elevation)),
         ("accuracy".to_string(), JsonValue::from(pt.accuracy)),

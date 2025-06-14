@@ -8,7 +8,7 @@ Migration:
 - SQLite: remove exisiting db file and restart
 - PostgreSQL:
   - `DB=mydb`
-  - `psql $DB -c "ALTER TABLE gpslog RENAME TO positions; ALTER SEQUENCE gpslog_id_seq RENAME TO positions_id_seq;"`
+  - `psql $DB -c "ALTER TABLE gpslog RENAME TO positions; ALTER SEQUENCE gpslog_id_seq RENAME TO positions_id_seq; ALTER TABLE positions DROP COLUMN tid;"`
   - `pg_dump --data-only -Fc $DB -f ot.dump`
   - Recreate database, restart and stop application
   - `psql $DB -c "DELETE FROM positions; DELETE FROM devices;"`

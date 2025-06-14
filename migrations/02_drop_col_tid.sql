@@ -1,0 +1,2 @@
+ALTER TABLE positions
+DROP COLUMN tid;

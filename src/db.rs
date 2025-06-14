@@ -28,7 +28,6 @@ pub struct GpsPoint {
     pub x: f64,
     /// Timestamp in format 2025-02-19 06:46:54+00
     pub ts: String, // DateTime<FixedOffset> is not supported by Any driver
-    pub tid: String,
     pub speed: Option<i16>,
     pub elevation: Option<i16>,
     /// Accuracy in meters
@@ -164,11 +163,10 @@ impl Db {
 
         sqlx::query(
             r#"INSERT INTO positions
-             (device_id, tid, ts, velocity, lat, lon, alt, accuracy, v_accuracy, cog, annotations)
-              VALUES ($1, $2, unixepoch($3, 'unixepoch'), $4, $5, $6, $7, $8, $9, $10, $11)"#,
+             (device_id, ts, velocity, lat, lon, alt, accuracy, v_accuracy, cog, annotations)
+              VALUES ($1, unixepoch($2, 'unixepoch'), $3, $4, $5, $6, $7, $8, $9, $10)"#,
         )
         .bind(device_id)
-        .bind(&loc.tid)
         .bind(loc.ts)
         .bind(loc.velocity.map(|val| val as i32)) // u16 is not supported by Any driver
         .bind(loc.lat)
@@ -218,7 +216,6 @@ impl Db {
                     lat as y,
                     lon as x,
                     datetime(ts, 'unixepoch') AS ts,
-                    tid,
                     velocity as speed,
                     alt as elevation,
                     accuracy,
