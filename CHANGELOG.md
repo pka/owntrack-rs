@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0 - UNRELEASED
+
+- BREAKING: Rename table `gpslog` to `positions`
+
+Migration:
+- SQLite: remove exisiting db file and restart
+- PostgreSQL:
+  - `DB=mydb`
+  - `psql $DB -c "ALTER TABLE gpslog RENAME TO positions; ALTER SEQUENCE gpslog_id_seq RENAME TO positions_id_seq;"`
+  - `pg_dump --data-only -Fc $DB -f ot.dump`
+  - Recreate database, restart and stop application
+  - `psql $DB -c "DELETE FROM positions; DELETE FROM devices;"`
+  - `pg_restore --table devices --table devices_id_seq --table positions --table positions_id_seq -d $DB ot.dump`
+
 ## 0.7.2 - 2025-05-31
 
 - Use Mestastic channel as user name
@@ -49,7 +63,7 @@
 - Handle accuracy NULL values
 - Embed and serve frontend
 - Handle missing speed and elevation
-- Share date betwwen components
+- Share date between components
 - Load track list
 - Add CORS headers
 - Enable HTTP compression

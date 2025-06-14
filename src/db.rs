@@ -103,8 +103,8 @@ impl Db {
                 r#"
                 CREATE SEQUENCE IF NOT EXISTS devices_id_seq;
                 ALTER TABLE devices ALTER COLUMN id SET DEFAULT NEXTVAL ('devices_id_seq');
-                CREATE SEQUENCE IF NOT EXISTS gpslog_id_seq;
-                ALTER TABLE gpslog ALTER COLUMN id SET DEFAULT NEXTVAL ('gpslog_id_seq');
+                CREATE SEQUENCE IF NOT EXISTS positions_id_seq;
+                ALTER TABLE positions ALTER COLUMN id SET DEFAULT NEXTVAL ('positions_id_seq');
                 -- SQLite comaptible date/time functions
                 CREATE OR REPLACE FUNCTION unixepoch(bigint, varchar(20)) RETURNS TIMESTAMPTZ
                     AS 'select to_timestamp($1);'
@@ -123,6 +123,14 @@ impl Db {
             .execute(&self.pool)
             .await?;
         }
+        let _result = sqlx::raw_sql(
+            r#"
+            CREATE INDEX IF NOT EXISTS positions_date_device_idx
+                ON positions (date(ts, 'unixepoch'), device_id);
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 
@@ -155,7 +163,7 @@ impl Db {
         .await?;
 
         sqlx::query(
-            r#"INSERT INTO gpslog
+            r#"INSERT INTO positions
              (device_id, tid, ts, velocity, lat, lon, alt, accuracy, v_accuracy, cog, annotations)
               VALUES ($1, $2, unixepoch($3, 'unixepoch'), $4, $5, $6, $7, $8, $9, $10, $11)"#,
         )
@@ -184,11 +192,11 @@ impl Db {
                 user_id,
                 device,
                 devices.tid,
-                datetime(min(gpslog.ts), 'unixepoch') as ts_start,
-                datetime(max(gpslog.ts), 'unixepoch') as ts_end
-            FROM gpslog
-            JOIN devices ON gpslog.device_id = devices.id
-            WHERE date(gpslog.ts, 'unixepoch') = $1
+                datetime(min(positions.ts), 'unixepoch') as ts_start,
+                datetime(max(positions.ts), 'unixepoch') as ts_end
+            FROM positions
+            JOIN devices ON positions.device_id = devices.id
+            WHERE date(positions.ts, 'unixepoch') = $1
             GROUP BY device_id, user_id, device, devices.tid"#,
         )
         .bind(date)
@@ -217,7 +225,7 @@ impl Db {
                     v_accuracy,
                     cog,
                     annotations
-                FROM gpslog
+                FROM positions
                 WHERE date(ts, 'unixepoch') = $1
                 AND device_id = $2
                 ORDER BY id

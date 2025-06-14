@@ -1,6 +1,5 @@
 -- CREATE SEQUENCE devices_id_seq;
-
-CREATE TABLE devices(
+CREATE TABLE devices (
     id INTEGER PRIMARY KEY, -- DEFAULT NEXTVAL ('devices_id_seq')
     user_id VARCHAR(200) NOT NULL,
     device VARCHAR(200) NOT NULL,
@@ -15,12 +14,12 @@ CREATE TABLE devices(
     v_accuracy SMALLINT,
     cog SMALLINT -- TINYINT
 );
-CREATE UNIQUE INDEX user_device_idx ON devices(user_id, device);
 
--- CREATE SEQUENCE gpslog_id_seq;
+CREATE UNIQUE INDEX user_device_idx ON devices (user_id, device);
 
-CREATE TABLE gpslog(
-    id INTEGER PRIMARY KEY, -- DEFAULT NEXTVAL ('gpslog_id_seq')
+-- CREATE SEQUENCE positions_id_seq;
+CREATE TABLE positions (
+    id INTEGER PRIMARY KEY, -- DEFAULT NEXTVAL ('positions_id_seq')
     device_id INTEGER NOT NULL,
     lat DOUBLE PRECISION NOT NULL,
     lon DOUBLE PRECISION NOT NULL,
