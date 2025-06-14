@@ -5,6 +5,7 @@ mod http;
 mod meshtastic;
 mod mqtt;
 mod owntracks;
+mod position;
 mod stats;
 
 use db::Db;

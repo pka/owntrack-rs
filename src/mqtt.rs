@@ -42,12 +42,12 @@ pub async fn subscribe(db: &Db) -> anyhow::Result<()> {
                     serde_json::from_slice::<owntracks::Message>(packet.payload.as_ref())
                 {
                     log::debug!("{msg:?}");
-                    if let owntracks::Message::Location(loc) = msg {
+                    if let owntracks::Message::Location(pos) = msg {
                         let Some((user, device)) = get_user_device_from_topic(&packet.topic) else {
                             log::error!("Unexpected topic `{}`", packet.topic);
                             continue;
                         };
-                        if let Err(e) = db.insert_location(&user, &device, &loc).await {
+                        if let Err(e) = db.insert_position(&user, &device, &pos).await {
                             log::error!("{e}");
                         }
                     }

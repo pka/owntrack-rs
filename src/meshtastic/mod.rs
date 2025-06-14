@@ -3,7 +3,7 @@
 pub(crate) mod protobufs;
 
 use crate::db::Db;
-use crate::owntracks::Location;
+use crate::position::Position;
 use prost::Message;
 use std::str::FromStr;
 
@@ -41,9 +41,9 @@ pub async fn decode_packet(
                     // Position { latitude_i: Some(470400000), longitude_i: Some(94300000), altitude: Some(491), time: 1748123191, location_source: LocInternal, altitude_source: AltUnset, timestamp: 0, timestamp_millis_adjust: 0, altitude_hae: None, altitude_geoidal_separation: None, pdop: 149, hdop: 0, vdop: 0,
                     //  gps_accuracy: 0, ground_speed: Some(0), ground_track: Some(18928000), fix_quality: 0, fix_type: 0, sats_in_view: 10, sensor_id: 0, next_update: 0, seq_number: 0, precision_bits: 32 }
                     if !packet_data.want_response {
-                        if let Some(loc) = position_to_location(&node[5..], position) {
+                        if let Some(loc) = convert_mesh_position(&node[5..], position) {
                             if let Err(e) =
-                                db.insert_location(&envelope.channel_id, &node, &loc).await
+                                db.insert_position(&envelope.channel_id, &node, &loc).await
                             {
                                 log::error!("{e}");
                             }
@@ -75,13 +75,13 @@ pub async fn decode_packet(
     Ok(())
 }
 
-fn position_to_location(tid: &str, pos: protobufs::Position) -> Option<Location> {
+fn convert_mesh_position(tid: &str, pos: protobufs::Position) -> Option<Position> {
     if let (Some(lat_i), Some(lon_i)) = (pos.latitude_i, pos.longitude_i) {
         let mut lat_str = lat_i.to_string();
         lat_str.insert(lat_str.len() - 7, '.'); // 470401765 -> 47.0401765
         let mut lon_str = lon_i.to_string();
         lon_str.insert(lon_str.len() - 7, '.');
-        let loc = Location {
+        let pos = Position {
             tid: tid.to_string(),
             ts: pos.time.into(),
             velocity: pos.ground_speed.map(|val| val as u16), // u32
@@ -93,7 +93,7 @@ fn position_to_location(tid: &str, pos: protobufs::Position) -> Option<Location>
             cog: None,
             annotations: "{}".to_string(),
         };
-        Some(loc)
+        Some(pos)
     } else {
         None
     }

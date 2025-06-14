@@ -1,4 +1,4 @@
-use crate::db::{GpsPoint, Position, TrackData};
+use crate::db::{DevicePosition, GpsPoint, TrackData};
 use crate::stats::{BboxStats, DistanceStats, ElevationDiffStats, TrackStats};
 use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
 
@@ -136,7 +136,7 @@ pub fn track_points(tracks: &[TrackData]) -> anyhow::Result<String> {
 }
 
 /// Build a GeoJSON Point FeatureCollection
-pub fn positions(points: &[Position]) -> anyhow::Result<String> {
+pub fn positions(points: &[DevicePosition]) -> anyhow::Result<String> {
     let features = points
         .iter() // without accuracy filter
         .map(|pt| {

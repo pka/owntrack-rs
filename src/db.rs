@@ -1,4 +1,4 @@
-use crate::owntracks::Location;
+use crate::position::Position;
 use serde::{ser::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use sqlx::migrate::{MigrateDatabase, Migrator};
@@ -39,7 +39,7 @@ pub struct GpsPoint {
 }
 
 #[derive(sqlx::FromRow, Debug)]
-pub struct Position {
+pub struct DevicePosition {
     pub device_id: i32,
     pub y: f64,
     pub x: f64,
@@ -133,13 +133,13 @@ impl Db {
         Ok(())
     }
 
-    pub async fn insert_location(
+    pub async fn insert_position(
         &self,
         user: &str,
         device: &str,
-        loc: &Location,
+        pos: &Position,
     ) -> anyhow::Result<()> {
-        // Upsert device location
+        // Upsert device position
         let device_id: i64 = sqlx::query_scalar(r#"
             INSERT INTO devices (user_id, device, tid, ts, velocity, lat, lon, alt, accuracy, v_accuracy, cog)
             VALUES ($1, $2, $3, unixepoch($4, 'unixepoch'), $5, $6, $7, $8, $9, $10, $11)
@@ -149,15 +149,15 @@ impl Db {
         )
         .bind(user)
         .bind(device)
-        .bind(&loc.tid)
-        .bind(loc.ts)
-        .bind(loc.velocity.map(|val| val as i32)) // u16 is not supported by Any driver
-        .bind(loc.lat)
-        .bind(loc.lon)
-        .bind(loc.alt.map(|val| val as i32)) // u16 is not supported by Any driver
-        .bind(loc.accuracy.map(|val| val as i64)) // u32 is not supported by Any driver
-        .bind(loc.v_accuracy)
-        .bind(loc.cog)
+        .bind(&pos.tid)
+        .bind(pos.ts)
+        .bind(pos.velocity.map(|val| val as i32)) // u16 is not supported by Any driver
+        .bind(pos.lat)
+        .bind(pos.lon)
+        .bind(pos.alt.map(|val| val as i32)) // u16 is not supported by Any driver
+        .bind(pos.accuracy.map(|val| val as i64)) // u32 is not supported by Any driver
+        .bind(pos.v_accuracy)
+        .bind(pos.cog)
         .fetch_one(&self.pool)
         .await?;
 
@@ -167,15 +167,15 @@ impl Db {
               VALUES ($1, unixepoch($2, 'unixepoch'), $3, $4, $5, $6, $7, $8, $9, $10)"#,
         )
         .bind(device_id)
-        .bind(loc.ts)
-        .bind(loc.velocity.map(|val| val as i32)) // u16 is not supported by Any driver
-        .bind(loc.lat)
-        .bind(loc.lon)
-        .bind(loc.alt.map(|val| val as i32)) // u16 is not supported by Any driver
-        .bind(loc.accuracy.map(|val| val as i64)) // u32 is not supported by Any driver
-        .bind(loc.v_accuracy)
-        .bind(loc.cog)
-        .bind(&loc.annotations)
+        .bind(pos.ts)
+        .bind(pos.velocity.map(|val| val as i32)) // u16 is not supported by Any driver
+        .bind(pos.lat)
+        .bind(pos.lon)
+        .bind(pos.alt.map(|val| val as i32)) // u16 is not supported by Any driver
+        .bind(pos.accuracy.map(|val| val as i64)) // u32 is not supported by Any driver
+        .bind(pos.v_accuracy)
+        .bind(pos.cog)
+        .bind(&pos.annotations)
         .execute(&self.pool)
         .await?;
 
@@ -242,9 +242,9 @@ impl Db {
         Ok(track)
     }
 
-    /// Return last device postitions
-    pub async fn query_positions(&self, date: &str) -> anyhow::Result<Vec<Position>> {
-        let positions: Vec<Position> = sqlx::query_as(
+    /// Return last device positions
+    pub async fn query_positions(&self, date: &str) -> anyhow::Result<Vec<DevicePosition>> {
+        let positions: Vec<DevicePosition> = sqlx::query_as(
             r#"
             SELECT
                 id as device_id,

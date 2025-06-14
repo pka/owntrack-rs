@@ -25,11 +25,11 @@ async fn owntracks(
     params: web::Query<OtParams>,
 ) -> actix_web::Result<impl Responder> {
     log::debug!("{msg:?}");
-    if let Message::Location(loc) = msg.into_inner() {
+    if let Message::Location(pos) = msg.into_inner() {
         let user = params.u.clone().unwrap_or("".to_string());
         let device = params.d.clone().unwrap_or("".to_string());
         // TODO: read user/device from msg.topic and/or from X-Limit-U + X-Limit-D headers
-        if let Err(e) = db.insert_location(&user, &device, &loc).await {
+        if let Err(e) = db.insert_position(&user, &device, &pos).await {
             log::error!("{e}");
         }
     }
