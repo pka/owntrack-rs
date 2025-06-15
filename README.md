@@ -208,7 +208,7 @@ npm install
 ```
 
 ```
-npm run dev
+just ui
 ```
 
 </div>
