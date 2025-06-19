@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>owntrack-rs Changelog</title><link>http://127.0.0.1:7979/owntrack-rs/changelog</link><description>Changelog information for owntrack-rs</description><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><atom:link href="http://127.0.0.1:7979/owntrack-rs/changelog.rss" rel="self"/><item><title>0.8.0 - 2025-06-19</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.8.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.8.0</guid><content:encoded><![CDATA[<ul>
+<li>BREAKING: Rename table <code>gpslog</code> to <code>positions</code></li>
+<li>Track export menu</li>
+<li>Show pulsating dot for moving devices</li>
+</ul>
+<p>Migration:</p>
+<ul>
+<li>SQLite: remove exisiting db file and restart</li>
+<li>PostgreSQL:
+<ul>
+<li><code>DB=mydb</code></li>
+<li><code>psql $DB -c "ALTER TABLE gpslog RENAME TO positions; ALTER SEQUENCE gpslog_id_seq RENAME TO positions_id_seq; ALTER TABLE positions DROP COLUMN tid;"</code></li>
+<li><code>pg_dump --data-only -Fc $DB -f ot.dump</code></li>
+<li>Recreate database, restart and stop application</li>
+<li><code>psql $DB -c "DELETE FROM positions; DELETE FROM devices;"</code></li>
+<li><code>pg_restore --table devices --table devices_id_seq --table positions --table positions_id_seq -d $DB ot.dump</code></li>
+</ul>
+</li>
+</ul>
+]]></content:encoded></item><item><title>0.7.2 - 2025-05-31</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.7.2</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.7.2</guid><content:encoded><![CDATA[<ul>
+<li>Use Mestastic channel as user name</li>
+</ul>
+]]></content:encoded></item><item><title>0.7.1 - 2025-05-30</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.7.1</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.7.1</guid><content:encoded><![CDATA[<ul>
+<li>Use <code>from</code> address in envelope as device name</li>
+</ul>
+]]></content:encoded></item><item><title>0.7.0 - 2025-05-25</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.7.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.7.0</guid><content:encoded><![CDATA[<ul>
+<li>Initial support for Meshtastic devices</li>
+</ul>
+]]></content:encoded></item><item><title>v0.6.2</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.6.2</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.6.2</guid><content:encoded><![CDATA[<ul>
+<li>Setup page with OwnTracks configuration</li>
+</ul>
+]]></content:encoded></item><item><title>v0.6.1</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.6.1</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.6.1</guid><content:encoded><![CDATA[<ul>
+<li>Listen on 0.0.0.0:8083 by default</li>
+<li>Fix statistics without measurements</li>
+<li>Fix parsing of SQLite timestamp</li>
+<li>Include maplibre-gl.css</li>
+<li>Add docker-compose file and instructions</li>
+</ul>
+]]></content:encoded></item><item><title>v0.6.0</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.6.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.6.0</guid><content:encoded><![CDATA[<ul>
+<li>Zoom to positions and tracks</li>
+<li>Calculate track distance</li>
+<li>Add track point layer with statistics</li>
+<li>Select track by clicking on position marker</li>
+<li>Select track by click on row</li>
+<li>Show last device positions</li>
+<li>Add basic frontend layout</li>
+<li>DB schema V2</li>
+<li>Make DB queries SQLite compatible</li>
+<li>Embed DB migrations</li>
+<li>Rename to owntrack-rs</li>
+</ul>
+]]></content:encoded></item><item><title>v0.5.1</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.5.1</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.5.1</guid><content:encoded><![CDATA[<ul>
+<li>Query single tracks</li>
+<li>Fix user display</li>
+</ul>
+]]></content:encoded></item><item><title>v0.5.0</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.5.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.5.0</guid><content:encoded><![CDATA[<ul>
+<li>Migrate from duckdb-rs to sqlx</li>
+<li>Handle accuracy NULL values</li>
+<li>Embed and serve frontend</li>
+<li>Handle missing speed and elevation</li>
+<li>Share date between components</li>
+<li>Load track list</li>
+<li>Add CORS headers</li>
+<li>Enable HTTP compression</li>
+<li>Add MapLibre GL viewer skeleton</li>
+<li>Ignore missing .env file</li>
+<li>Add GeoJSON endpoint</li>
+</ul>
+]]></content:encoded></item><item><title>v0.4.0</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.4.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.4.0</guid><content:encoded><![CDATA[<ul>
+<li>Store user+device</li>
+<li>Include available GPS measurements in track</li>
+<li>Add Dockerfile</li>
+</ul>
+]]></content:encoded></item><item><title>v0.3.6</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.6</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.6</guid><content:encoded><![CDATA[<ul>
+<li>Add a GPX tracks endpoint</li>
+</ul>
+]]></content:encoded></item><item><title>v0.3.5</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.5</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.5</guid><content:encoded><![CDATA[<ul>
+<li>Add Logger to HTTP endpoint</li>
+<li>Keep session after MQTT reconnect</li>
+</ul>
+]]></content:encoded></item><item><title>v0.3.4</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.4</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.4</guid><content:encoded><![CDATA[<ul>
+<li>Fix cog type and continue on decoding error</li>
+</ul>
+]]></content:encoded></item><item><title>v0.3.3</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.3</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.3</guid><content:encoded><![CDATA[<ul>
+<li>Revert cargo update</li>
+</ul>
+]]></content:encoded></item><item><title>v0.3.0</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.3.0</guid><content:encoded><![CDATA[<ul>
+<li>Add HTTP endpoint</li>
+</ul>
+]]></content:encoded></item><item><title>v0.2.0</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.2.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.2.0</guid><content:encoded><![CDATA[<ul>
+<li>Add OwnTracks fields</li>
+</ul>
+]]></content:encoded></item><item><title>v0.1.1</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.1.1</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.1.1</guid><content:encoded><![CDATA[<ul>
+<li>Fix longitude</li>
+</ul>
+]]></content:encoded></item><item><title>v0.1.0</title><link>http://127.0.0.1:7979/owntrack-rs/changelog/v0.1.0</link><category domain="https://github.com/pka/owntrack-rs">owntrack-rs Changelog</category><guid>http://127.0.0.1:7979/owntrack-rs/changelog/v0.1.0</guid><content:encoded><![CDATA[<ul>
+<li>Insert locations into DB</li>
+<li>Decode location payload</li>
+<li>Add refinery migrations</li>
+<li>Load PostgreSQL extension</li>
+<li>Read MQTT configuration from .env</li>
+<li>Add MQTT client</li>
+<li>duckdb-rs usage example</li>
+</ul>
+]]></content:encoded></item></channel></rss>
