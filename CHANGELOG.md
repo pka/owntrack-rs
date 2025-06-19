@@ -1,8 +1,10 @@
 # Changelog
 
-## 0.8.0 - UNRELEASED
+## 0.8.0 - 2025-06-19
 
 - BREAKING: Rename table `gpslog` to `positions`
+- Track export menu
+- Show pulsating dot for moving devices
 
 Migration:
 - SQLite: remove exisiting db file and restart
