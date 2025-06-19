@@ -36,6 +36,30 @@
             isoDateString(curTrack.ts_start) === isoDateString(track.ts_start)
         );
     }
+
+    let track_dropdown = $state(null);
+
+    function toggleDropdown(device_id, event) {
+        event.stopPropagation();
+        if (track_dropdown === device_id) {
+            track_dropdown = null;
+        } else {
+            track_dropdown = device_id;
+            // Position dropdown relative to button
+            const button = event.target;
+            const rect = button.getBoundingClientRect();
+            const dropdown =
+                button.parentElement.querySelector(".dropdown-menu");
+            if (dropdown) {
+                dropdown.style.top = `${rect.bottom + 2}px`;
+                dropdown.style.left = `${rect.right}px`;
+            }
+        }
+    }
+
+    function closeDropdown() {
+        track_dropdown = null;
+    }
 </script>
 
 <div class="header">
@@ -52,6 +76,15 @@
         <p>loading track list...</p>
     {:then tracks}
         <table class="tracks-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Device</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
             <tbody>
                 {#each tracks as track}
                     <tr
@@ -62,6 +95,42 @@
                         <td>{track.device}</td>
                         <td>{utcToLocalTime(track.ts_start)}</td>
                         <td>{utcToLocalTime(track.ts_end)}</td>
+                        <td class="dropdown-cell">
+                            <button
+                                class="dropdown-button"
+                                onclick={(e) =>
+                                    toggleDropdown(track.device_id, e)}
+                                >☰
+                            </button>
+                            {#if track_dropdown === track.device_id}
+                                <div class="dropdown-menu">
+                                    <a
+                                        href="{PUBLIC_BASE_URL}/gpxtrack?device_id={track.device_id}&ts_start={encodeURIComponent(
+                                            track.ts_start,
+                                        )}"
+                                        class="dropdown-item"
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            closeDropdown();
+                                        }}
+                                    >
+                                        Download GPX
+                                    </a>
+                                    <a
+                                        href="{PUBLIC_BASE_URL}/track?device_id={track.device_id}&ts_start={encodeURIComponent(
+                                            track.ts_start,
+                                        )}"
+                                        class="dropdown-item"
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            closeDropdown();
+                                        }}
+                                    >
+                                        Download GeoJSON
+                                    </a>
+                                </div>
+                            {/if}
+                        </td>
                     </tr>
                 {/each}
             </tbody>
@@ -90,24 +159,20 @@
         gap: 5px;
     }
 
-    .tracks-container {
-        width: 100%;
-        overflow-x: auto;
-    }
-
     .tracks-table {
         width: 100%;
         border-collapse: collapse;
+        overflow-x: auto;
+        overflow-y: visible;
     }
 
-    /*
     .tracks-table th {
         text-align: left;
         padding: 8px;
-        background-color: #f2f2f2;
+        /* background-color: #f2f2f2; */
         border-bottom: 1px solid #ddd;
+        font-weight: bold;
     }
-    */
 
     .tracks-table td {
         padding: 8px;
@@ -123,11 +188,67 @@
         cursor: pointer;
     }
 
+    .tracks-table tr:focus {
+        background-color: #f0f0f0;
+    }
+
     .tracks-table tr.selected {
         background-color: lightblue;
     }
 
     .tracks-table tr.selected:hover {
         background-color: #a8d4e6;
+    }
+
+    .tracks-table tr.selected:focus {
+        background-color: #a8d4e6;
+    }
+
+    .dropdown-cell {
+        position: relative;
+        overflow: visible;
+    }
+
+    .dropdown-button {
+        background: none;
+        border: none;
+        font-size: 1.2em;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        color: #666;
+        transition: background-color 0.2s;
+    }
+
+    .dropdown-button:hover {
+        background-color: #e9ecef;
+    }
+
+    .dropdown-menu {
+        position: fixed;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 9999;
+        min-width: 150px;
+        transform: translate(-100%, 0);
+    }
+
+    .dropdown-item {
+        display: block;
+        padding: 8px 12px;
+        color: #333;
+        text-decoration: none;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s;
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
     }
 </style>

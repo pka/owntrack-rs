@@ -111,8 +111,17 @@ async fn track(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpRespon
                 .finish();
         }
     };
+    let filename = format!(
+        "track_{}_{}.json",
+        track_ref.device_id,
+        track_ref.ts_start.replace(" ", "_")
+    );
     HttpResponse::Ok()
         .content_type("application/geo+json")
+        .insert_header((
+            "Content-Disposition",
+            format!("attachment; filename=\"{filename}\""),
+        ))
         .body(json)
 }
 
@@ -137,8 +146,17 @@ async fn gpxtrack(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpRes
                 .finish();
         }
     };
+    let filename = format!(
+        "track_{}_{}.gpx",
+        track_ref.device_id,
+        track_ref.ts_start.replace(" ", "_")
+    );
     HttpResponse::Ok()
         .content_type("application/gpx+xml")
+        .insert_header((
+            "Content-Disposition",
+            format!("attachment; filename=\"{filename}\""),
+        ))
         .body(gpx)
 }
 
