@@ -160,6 +160,52 @@ async fn gpxtrack(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpRes
         .body(gpx)
 }
 
+/// Get track as CSV
+#[get("/csvtrack")]
+async fn csvtrack(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpResponse {
+    let track_ = match db.query_track(&track_ref).await {
+        Ok(data) => data,
+        Err(e) => {
+            log::error!("Failed to fetch track: {e}");
+            return HttpResponse::InternalServerError()
+                .reason("Failed to fetch track")
+                .finish();
+        }
+    };
+
+    let mut csv_data = String::new();
+    // CSV header
+    csv_data.push_str("timestamp,latitude,longitude,speed,elevation,accuracy,v_accuracy,cog\n");
+
+    // CSV data rows
+    for point in &track_.points {
+        csv_data.push_str(&format!(
+            "{},{:.7},{:.7},{},{},{},{},{}\n",
+            point.ts,
+            point.y,
+            point.x,
+            point.speed.map_or(String::new(), |s| s.to_string()),
+            point.elevation.map_or(String::new(), |e| e.to_string()),
+            point.accuracy.map_or(String::new(), |a| a.to_string()),
+            point.v_accuracy.map_or(String::new(), |va| va.to_string()),
+            point.cog.map_or(String::new(), |c| c.to_string()),
+        ));
+    }
+
+    let filename = format!(
+        "track_{}_{}.csv",
+        track_ref.device_id,
+        track_ref.ts_start.replace(" ", "_")
+    );
+    HttpResponse::Ok()
+        .content_type("text/csv")
+        .insert_header((
+            "Content-Disposition",
+            format!("attachment; filename=\"{filename}\""),
+        ))
+        .body(csv_data)
+}
+
 /// Get GeoJSON track points
 #[get("/trackpoints")]
 async fn trackpoints(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpResponse {
@@ -278,6 +324,7 @@ pub async fn webserver(db: Db) -> std::io::Result<()> {
             .service(rawjson)
             .service(trackinfos)
             .service(gpxtrack)
+            .service(csvtrack)
             .service(track)
             .service(trackpoints)
             .service(positions)

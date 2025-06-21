@@ -128,6 +128,18 @@
                                     >
                                         Download GeoJSON
                                     </a>
+                                    <a
+                                        href="{PUBLIC_BASE_URL}/csvtrack?device_id={track.device_id}&ts_start={encodeURIComponent(
+                                            track.ts_start,
+                                        )}"
+                                        class="dropdown-item"
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            closeDropdown();
+                                        }}
+                                    >
+                                        Download CSV
+                                    </a>
                                 </div>
                             {/if}
                         </td>
