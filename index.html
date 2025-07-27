@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" id="oranda" class="cupcake">
+  <head>
+    <title>owntrack-rs</title>
+    
+    
+      <link rel="icon" href="/owntrack-rs/favicon.ico" />
+    
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+      <meta name="description" content="OwnTracks compatible GPS track recorder" />
+      <meta property="og:description" content="OwnTracks compatible GPS track recorder" />
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="owntrack-rs" />
+    
+    
+    
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+    <link rel="stylesheet" href="/owntrack-rs/oranda-v0.6.1.css" />
+    
+    
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-body">
+        
+          <div class="repo_banner">
+            <a href="https://github.com/pka/owntrack-rs">
+              <div class="github-icon" aria-hidden="true"></div>
+              Check out our GitHub!
+            </a>
+          </div>
+        
+
+        <main>
+          <header>
+            
+            <h1 class="title">owntrack-rs</h1>
+            
+  <nav class="nav">
+    <ul>
+      <li><a href="/owntrack-rs/">Home</a></li>
+
+      
+
+      
+
+      
+
+      
+
+      
+        <li><a href="/owntrack-rs/changelog/">Changelog</a></li>
+      
+    </ul>
+  </nav>
+
+          </header>
+
+          
+
+
+    <div class="oranda-hide">
+<h1>Owntrack-rs</h1>
+</div>
+<h2>Overview</h2>
+<p>Owntrack-rs is a self-hosted GPS tracking solution that allows you to record and manage your location data from mobile phones or IoT devices.
+It provides <a href="https://owntracks.org/booklet/" rel="noopener noreferrer">OwnTracks</a> compatible HTTP and MQTT endpoints, <a href="https://meshtastic.org/" rel="noopener noreferrer">Meshtastic</a> MQTT integration
+and a built-in viewer application.</p>
+<p><img src="static/screenshot.jpg" alt="Screenshot"></p>
+<pre>Features:
+- [x] Owntracks compatible HTTP endpoint
+- [x] Owntracks compatible MQTT interface
+- [x] Meshtastic compatible MQTT interface
+- [x] SQLite local file storage
+- [x] PostgreSQL database storage
+- [x] GeoJSON and GPX track exports
+- [x] Built-In Viewer
+- [ ] Password protected and public views
+- [x] Mobile friendly vector tile maps
+</pre>
+<h2>Installation</h2>
+<h3>Pre-built binaries</h3>
+<p>We provide several options to access pre-built binaries for a variety of platforms. If you would like to manually download a pre-built binary, checkout <a href="https://github.com/pka/owntrack-rs/releases/latest" rel="noopener noreferrer">the latest release on GitHub</a>.</p>
+<h3>Installer scripts</h3>
+<h4>macOS and Linux:</h4>
+<pre style="background-color:#263238;"><span style="color:#82aaff;">curl</span><span style="color:#89ddff;"> --</span><span style="color:#f78c6c;">proto </span><span style="color:#89ddff;">'</span><span style="color:#c3e88d;">=https</span><span style="color:#89ddff;">' --</span><span style="color:#f78c6c;">tlsv1</span><span style="color:#82aaff;">.2</span><span style="color:#89ddff;"> -</span><span style="color:#f78c6c;">LsSf</span><span style="color:#82aaff;"> https://github.com/pka/owntrack-rs/releases/latest/download/owntrack-rs-installer.sh </span><span style="color:#89ddff;">| </span><span style="color:#82aaff;">sh
+</span></pre>
+
+<h3>Docker</h3>
+<p>There is a Docker image available on <a href="https://hub.docker.com/r/sourcepole/owntrack-rs" rel="noopener noreferrer">Docker Hub</a>.</p>
+<p>Usage:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">docker run -d --name owntrack-rs --rm -p 8083:8083 --user $(id -u):$(id -g) -v $PWD:/db -e DB_CONNECTION=sqlite://db/owntracks.sqlite sourcepole/owntrack-rs
+</span></pre>
+
+<h3>Docker Compose</h3>
+<p>There is a sample <code>docker-compose.yml</code> file that can be used to run owntrack-rs with a SQLite database and a Caddy reverse proxy.</p>
+<p>Copy <a href="https://github.com/pka/owntrack-rs/raw/refs/heads/main/docker-compose.yml" rel="noopener noreferrer">docker-compose.yml</a> and <a href="https://github.com/pka/owntrack-rs/raw/refs/heads/main/Caddyfile" rel="noopener noreferrer">Caddyfile</a>
+into an empty directory.</p>
+<p>Setup your DNS pointing to the public IP address of your server.</p>
+<p>Create an <code>.env</code> file with the following content:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">#HTTP_ADDRESS=owntracks.example.org
+</span><span style="color:#eeffff;">OTRS_USERNAME=owntracks
+</span><span style="color:#eeffff;">OTRS_PASSWORD='private'
+</span><span style="color:#eeffff;"># docker compose exec caddy caddy hash-password --plaintext 'private'
+</span><span style="color:#eeffff;">OTRS_PASSWORD_HASH='$2a$14$CkbCQwO7/duJ/kCObNwEPeiZlmgXrWZ0PXah1DlfkCF70.BIwzZVC'
+</span><span style="color:#eeffff;">OTRS_DEVICE_ID=mobile
+</span><span style="color:#eeffff;">OTRS_TID=me
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">#MQTT_URL=mqtts://owntracks.example.org:8883
+</span><span style="color:#eeffff;">#MQTT_USER=otrecorder
+</span><span style="color:#eeffff;">#MQTT_PASSWORD='mypassword'
+</span></pre>
+
+<p>Make it readable for the current user only:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">chmod 600 .env
+</span></pre>
+
+<p>Start the containers:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">docker-compose up -d
+</span></pre>
+
+<p>Using the default values, owntrack-rs will be available at <code>https://localhost</code> with login user <code>owntracks</code> and password <code>private</code>.</p>
+<h3>Build From Source</h3>
+<p>For users who need to install owntrack-rs on platforms that we do not yet provide pre-built binaries for, you will need to build from source.
+<code>owntrack-rs</code> is written in <a href="https://rust-lang.org" rel="noopener noreferrer">Rust</a> and uses <a href="https://doc.rust-lang.org/cargo/index.html" rel="noopener noreferrer">cargo</a> to build. Once you've <a href="https://rustup.rs/" rel="noopener noreferrer">installed the Rust toolchain (<code>rustup</code>)</a>, run:</p>
+<pre style="background-color:#263238;"><span style="color:#82aaff;">cargo install</span><span style="color:#89ddff;"> --</span><span style="color:#f78c6c;">path</span><span style="color:#82aaff;"> .
+</span></pre>
+
+<h2>Setup &amp; run</h2>
+<p>Run with default configuration:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">owntrack-rs
+</span></pre>
+
+<p>Configuration options are passed as environment variables or read from a <code>.env</code> configuration file.</p>
+<p>Configuration options:</p>
+<ul>
+<li><code>HTTP_LISTEN</code>: IP address and port to listen on. Default: <code>0.0.0.0:8083</code></li>
+</ul>
+<h3>MQTT</h3>
+<p>For getting location data via MQTT, an MQTT broker like Mosquitto is required.</p>
+<p>Configuration options:</p>
+<ul>
+<li><code>MQTT_URL</code>: MQTT broker URL. Example: <code>mqtts://owntracks.example:8883</code></li>
+<li><code>MQTT_USER</code>: MQTT user name.</li>
+<li><code>MQTT_PASSWORD</code>: MQTT password.</li>
+</ul>
+<h3>SQLite database</h3>
+<p>Configuration options:</p>
+<ul>
+<li><code>DB_CONNECTION</code>: Database connection URL. Default: <code>sqlite://owntracks.sqlite</code></li>
+</ul>
+<h3>PostgreSQL database</h3>
+<p>Create database:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">psql postgres -c "CREATE DATABASE owntracks"
+</span></pre>
+
+<p>Configuration options:</p>
+<ul>
+<li><code>DB_CONNECTION</code>: libpq connection string or PostgreSQL URI. Example: <code>postgres://user:pass@localhost:5432/owntracks</code></li>
+</ul>
+<h2>Setup tracking devices</h2>
+<h3>OwnTracks apps</h3>
+<p>The <a href="https://owntracks.org/booklet/" rel="noopener noreferrer">OwnTracks</a> apps can be used in MQTT or HTTP mode.</p>
+<table>
+<thead>
+<tr>
+<th align="center">iOS</th>
+<th align="center">Android</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><a href="https://apps.apple.com/us/app/owntracks/id692424691" rel="noopener noreferrer"><img src="static/appstore.png" alt="AppStore"></a></td>
+<td align="center"><a href="https://play.google.com/store/apps/details?id=org.owntracks.android" rel="noopener noreferrer"><img src="static/playstore.png" alt="PlayStore"></a></td>
+</tr>
+</tbody>
+</table>
+<p>For configuring the app, open the setup page of your hosted domain e.g. at <code>https://owntracks.example.org/setup</code>.</p>
+<ul>
+<li><a href="https://owntracks.org/booklet/guide/app/android/" rel="noopener noreferrer">Configure the Android app</a></li>
+</ul>
+<h3>Meshtastic devices</h3>
+<p><a href="https://meshtastic.org/" rel="noopener noreferrer">Meshtastic</a> devices can be integrated via <a href="https://meshtastic.org/docs/software/integrations/mqtt/" rel="noopener noreferrer">MQTT</a>.</p>
+<p>Setup <a href="https://meshtastic.org/docs/configuration/radio/channels/" rel="noopener noreferrer">channel</a> on nodes:</p>
+<ul>
+<li>Setup a <strong>primary</strong> channel with a private <code>PSK</code></li>
+<li>Activate <code>uplink_enabled</code> and <code>downlink_enabled</code> (optional)</li>
+<li>Set <code>position_precision</code> to <code>32</code> (full precision)</li>
+</ul>
+<p>Configure <a href="https://meshtastic.org/docs/configuration/radio/position/" rel="noopener noreferrer">position</a> on nodes:</p>
+<ul>
+<li>Example values for a tracking node:
+<ul>
+<li><code>position.gps_update_interval</code>: 10 seconds</li>
+<li><code>position.position_broadcast_smart_enabled</code>: <code>true</code></li>
+<li><code>position.broadcast_smart_minimum_distance</code>: 10 metres</li>
+<li><code>position.broadcast_smart_minimum_interval_secs</code>: 10 seconds</li>
+<li><code>position.position_broadcast_secs</code>: 120 seconds</li>
+</ul>
+</li>
+</ul>
+<p>Configure <a href="https://meshtastic.org/docs/configuration/radio/lora/" rel="noopener noreferrer">LoRa</a> on nodes:</p>
+<ul>
+<li><code>lora.ignore_mqtt</code>: <code>false</code></li>
+<li><code>lora.config_ok_to_mqtt</code>: <code>true</code></li>
+</ul>
+<p>Setup an MQTT gateway node:</p>
+<ul>
+<li>Connect your gateway node to wifi, by setting the <code>network.wifi_ssid</code>, <code>network.wifi_psk</code> and <code>network.wifi_enabled</code> preferences.</li>
+<li>Configure your <a href="%5Bhttps://meshtastic.org/docs/configuration/module/mqtt/" rel="noopener noreferrer">MQTT settings</a>: <code>mqtt.address</code>, <code>mqtt.username</code>, and <code>mqtt.password</code>.
+<ul>
+<li><code>mqtt.encryption_enabled</code>: <code>false</code></li>
+<li><code>mqtt.json_enabled</code>: <code>false</code></li>
+<li><code>mqtt.tls_enabled</code>: according to your MQTT server setup</li>
+<li><code>mqtt.root</code>: according to your MQTT server setup. For an OnwTracks compatible setup use e.g. <code>owntracks/&lt;user&gt;/msh</code>.</li>
+</ul>
+</li>
+</ul>
+<p>Tested with Firmware 2.6.4.</p>
+<h3>Use your own devices</h3>
+<p>Send a POST request to the <code>owntracks</code> endpoint:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">curl --data '{"_type":"location","lat":48.856826,"lon":2.292713,"tid":"me","tst":'$(date +%s)'}' -H "Content-Type: application/json" "http://127.0.0.1:8083/owntracks?u=me&amp;d=mydevice"
+</span></pre>
+
+<div class="oranda-hide">
+<h2>Development</h2>
+<h3>Prerequisites</h3>
+<ul>
+<li>Just: <a href="https://just.systems/man/en/" rel="noopener noreferrer">https://just.systems/man/en/</a></li>
+</ul>
+<h3>Build and run application</h3>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">cargo run
+</span></pre>
+
+<h3>Frontend development</h3>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">cd frontend
+</span></pre>
+
+<p>Preparation:</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">npm install
+</span></pre>
+
+<pre style="background-color:#263238;"><span style="color:#eeffff;">just ui
+</span></pre>
+
+</div>
+
+
+
+        </main>
+      </div>
+
+      <footer>
+        
+          <a href="https://github.com/pka/owntrack-rs"><div class="github-icon" aria-hidden="true"></div></a>
+        
+        <span>
+          owntrack-rs, AGPL3
+        </span>
+      </footer>
+    </div>
+
+    
+    
+
+    
+
+
+  </body>
+</html>
