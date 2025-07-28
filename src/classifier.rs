@@ -16,4 +16,17 @@ impl Classifier {
         let matrix = DenseMatrix::from_2d_vec(x).unwrap();
         self.tree.predict(&matrix).unwrap()
     }
+    pub fn activity(&self, idx: u16) -> &str {
+        let lookup = vec![
+            "stop",
+            "walk",
+            "ski",
+            "car",
+            "bike",
+            "train",
+            "bus",
+            "paraglide",
+        ];
+        lookup.get(idx as usize).unwrap_or(&"unknown")
+    }
 }

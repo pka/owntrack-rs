@@ -156,7 +156,7 @@ pub fn track_points(tracks: &[TrackData]) -> anyhow::Result<String> {
             // Collapse stops
             // TOOD: keep frist & last point
             if class != 0 {
-                Some(point)
+                Some((point, class, class_inputs[idx].clone()))
             } else {
                 None
             }
@@ -164,10 +164,14 @@ pub fn track_points(tracks: &[TrackData]) -> anyhow::Result<String> {
     let features = feat_iter
         .clone()
         .enumerate()
-        .map(|(idx, pt)| {
+        .map(|(idx, (pt, class, inputs))| {
             let geometry = Geometry::new(geojson::Value::Point(vec![pt.x, pt.y]));
             let mut properties = point_properties(pt);
-            properties.extend([("activity".to_string(), JsonValue::from(y[idx]))]);
+            properties.extend([(
+                "activity".to_string(),
+                JsonValue::from(classifier.activity(class)),
+            )]);
+            properties.extend([("inputs".to_string(), JsonValue::from(inputs))]);
             Feature {
                 id: Some(geojson::feature::Id::Number(serde_json::Number::from(idx))),
                 geometry: Some(geometry),
@@ -177,14 +181,16 @@ pub fn track_points(tracks: &[TrackData]) -> anyhow::Result<String> {
         })
         .collect();
 
-    let bbox = BboxStats::from_xy_iter(feat_iter.clone().map(|pt| (pt.x, pt.y))).bbox();
+    let bbox = BboxStats::from_xy_iter(feat_iter.clone().map(|(pt, _, _)| (pt.x, pt.y))).bbox();
 
-    let mut stats = TrackStats::from_iter(feat_iter.clone()).as_properties();
+    let mut stats = TrackStats::from_iter(feat_iter.clone().map(|(pt, _, _)| pt)).as_properties();
     stats.extend(
-        ElevationDiffStats::from_iter(feat_iter.clone().filter_map(|pt| pt.elevation))
+        ElevationDiffStats::from_iter(feat_iter.clone().filter_map(|(pt, _, _)| pt.elevation))
             .as_properties(),
     );
-    stats.extend(DistanceStats::from_xy_iter(feat_iter.map(|pt| (pt.x, pt.y))).as_properties());
+    stats.extend(
+        DistanceStats::from_xy_iter(feat_iter.map(|(pt, _, _)| (pt.x, pt.y))).as_properties(),
+    );
     let stats_json = JsonObject::from_iter([("stats".to_string(), JsonValue::from(stats))]);
 
     let geojson = FeatureCollection {
