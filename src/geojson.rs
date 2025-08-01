@@ -26,31 +26,23 @@ fn point_properties(pt: &GpsPoint) -> JsonObject {
 }
 
 /// Build a GeoJSON LineString FeatureCollection
-pub fn track(tracks: &[TrackData]) -> anyhow::Result<String> {
-    let features: Vec<Feature> = tracks
-        .iter()
-        .map(|track| {
-            let mut points = track.points.iter().filter(|point| {
-                // keep only points within accuracy
-                point.accuracy.unwrap_or(0) < MAX_ACCURACY
-            });
-            let geometry = Geometry::new(geojson::Value::LineString(
-                points.clone().map(|pt| vec![pt.x, pt.y]).collect(),
-            ));
-            let bbox = BboxStats::from_xy_iter(points.clone().map(|pt| (pt.x, pt.y))).bbox();
-            // Use properties of last point
-            let properties = points.next_back().map(point_properties);
-            Feature {
-                geometry: Some(geometry),
-                properties,
-                bbox,
-                ..Default::default()
-            }
-        })
-        .collect();
+pub fn track(track: &TrackData) -> anyhow::Result<String> {
+    let (points, _classes) = preprocess(&track.points);
+    let geometry = Geometry::new(geojson::Value::LineString(
+        points.iter().map(|pt| vec![pt.x, pt.y]).collect(),
+    ));
+    let bbox = BboxStats::from_xy_iter(points.iter().map(|pt| (pt.x, pt.y))).bbox();
+    // Use properties of last point
+    let properties = points.last().map(point_properties);
+    let line_feature = Feature {
+        geometry: Some(geometry),
+        properties,
+        bbox,
+        ..Default::default()
+    };
 
     let geojson = FeatureCollection {
-        features,
+        features: vec![line_feature],
         ..Default::default()
     };
     Ok(geojson.to_string())

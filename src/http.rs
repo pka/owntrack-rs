@@ -100,7 +100,7 @@ async fn track(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpRespon
     let geojson = if track_ref.segmented.unwrap_or(false) {
         geojson::track_with_segments(&[track])
     } else {
-        geojson::track(&[track])
+        geojson::track(&track)
     };
     let json = match geojson {
         Ok(json) => json,
