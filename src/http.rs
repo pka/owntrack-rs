@@ -1,3 +1,4 @@
+use crate::classifier::{analyze, Classifier};
 use crate::db::{Db, TrackRef};
 use crate::geojson;
 use crate::gpx;
@@ -160,7 +161,7 @@ async fn gpxtrack(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpRes
         .body(gpx)
 }
 
-/// Get track as CSV
+/// Get raw track as CSV
 #[get("/csvtrack")]
 async fn csvtrack(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpResponse {
     let track_ = match db.query_track(&track_ref).await {
@@ -173,14 +174,17 @@ async fn csvtrack(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpRes
         }
     };
 
+    let y = analyze(&track_.points);
     let mut csv_data = String::new();
     // CSV header
-    csv_data.push_str("timestamp,latitude,longitude,speed,elevation,accuracy,v_accuracy,cog\n");
+    csv_data.push_str(
+        "timestamp,latitude,longitude,speed,elevation,accuracy,v_accuracy,cog,activity\n",
+    );
 
     // CSV data rows
-    for point in &track_.points {
+    for (point, class) in track_.points.iter().zip(y.iter()) {
         csv_data.push_str(&format!(
-            "{},{:.7},{:.7},{},{},{},{},{}\n",
+            "{},{:.7},{:.7},{},{},{},{},{},{}\n",
             point.ts,
             point.y,
             point.x,
@@ -189,6 +193,7 @@ async fn csvtrack(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> HttpRes
             point.accuracy.map_or(String::new(), |a| a.to_string()),
             point.v_accuracy.map_or(String::new(), |va| va.to_string()),
             point.cog.map_or(String::new(), |c| c.to_string()),
+            Classifier::activity(*class)
         ));
     }
 

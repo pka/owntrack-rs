@@ -41,7 +41,7 @@ impl Classifier {
 /// Returns a tuple of filtered track and corresponding activity labels.
 pub fn preprocess(track: &[GpsPoint]) -> (Vec<GpsPoint>, Vec<u16>) {
     let y = analyze(track);
-    let (filtered, classes) = track
+    let (filtered, classes): (Vec<GpsPoint>, Vec<u16>) = track
         .iter()
         .zip(y.iter())
         .filter_map(|(point, class)| {
@@ -54,6 +54,11 @@ pub fn preprocess(track: &[GpsPoint]) -> (Vec<GpsPoint>, Vec<u16>) {
             }
         })
         .unzip();
+    let ndel = track.len() - filtered.len();
+    log::debug!(
+        "Stop detection: removed {ndel} points ({:.2}%)",
+        ndel * 100 / track.len()
+    );
     (filtered, classes)
 }
 
