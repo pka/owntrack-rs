@@ -1,9 +1,7 @@
-use crate::classifier::Classifier;
+use crate::classifier::{preprocess, Classifier};
 use crate::db::{DevicePosition, GpsPoint, TrackData};
 use crate::stats::{BboxStats, DistanceStats, ElevationDiffStats, TrackStats};
-use geo::algorithm::vincenty_distance::VincentyDistance;
 use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
-use stats::OnlineStats;
 
 const MAX_ACCURACY: i32 = 200; // meters
 const ANNOTATIONS_SKIP_LIST: &[&str] = &["_id", "m", "BSSID", "SSID", "created_at"];
@@ -97,81 +95,19 @@ pub fn track_with_segments(tracks: &[TrackData]) -> anyhow::Result<String> {
 }
 
 /// Build a GeoJSON Point FeatureCollection
-pub fn track_points(tracks: &[TrackData]) -> anyhow::Result<String> {
-    let classifier = Classifier::load();
-    // ["speed", "speed_mean5", "speed_mean10", "ele_delta", "distquot10"]].replace([np.inf, -np.inf], 0).fillna(0)
-    let class_inputs: Vec<Vec<f64>> = tracks
+pub fn track_points(track: &TrackData) -> anyhow::Result<String> {
+    let (points, classes) = preprocess(&track.points);
+    let features = points
         .iter()
-        .flat_map(|track| {
-            let col0: Vec<f64> = track
-                .points
-                .iter()
-                .map(|pt| pt.speed.unwrap_or(0) as f64)
-                .collect();
-            let col1 = col0.windows(5).map(|rows| {
-                let mut stats = OnlineStats::default();
-                for val in rows {
-                    stats.add(*val);
-                }
-                stats.mean()
-            });
-            let lendiff = col0.len() - col1.clone().count();
-            let col1 = col1.chain(std::iter::repeat(0.0).take(lendiff)); // TODO: calculate remaining rows
-            let col2 = col0.windows(10).map(|rows| {
-                let mut stats = OnlineStats::default();
-                for val in rows {
-                    stats.add(*val);
-                }
-                stats.mean()
-            });
-            let lendiff = col0.len() - col2.clone().count();
-            let col2 = col2.chain(std::iter::repeat(0.0).take(lendiff)); // TODO: calculate remaining rows
-            let col3 = track
-                .points
-                .windows(2)
-                .map(|pts| (pts[1].elevation.unwrap_or(0) - pts[0].elevation.unwrap_or(0)) as f64);
-            let lendiff = col0.len() - col3.clone().count();
-            let col3 = col3.chain(std::iter::repeat(0.0).take(lendiff)); // TODO: calculate remaining rows
-            let col4 = col0.windows(1).map(|_rows| 1.0); // TODO
-            let rows: Vec<Vec<f64>> = col0 // We should probably use ndarray (optional dep of smartcore) for array operations
-                .iter()
-                .clone()
-                .zip(col1)
-                .zip(col2)
-                .zip(col3)
-                .zip(col4)
-                .map(|((((c0, c1), c2), c3), c4)| vec![*c0, c1, c2, c3, c4])
-                .collect();
-            rows
-        })
-        .collect();
-    let y = classifier.predict(&class_inputs);
-
-    let feat_iter = tracks
-        .iter()
-        .flat_map(|track| track.points.iter())
+        .zip(classes.iter())
         .enumerate()
-        .filter_map(|(idx, point)| {
-            let class = y[idx];
-            // Collapse stops
-            // TOOD: keep frist & last point
-            if class != 0 {
-                Some((point, class, class_inputs[idx].clone()))
-            } else {
-                None
-            }
-        });
-    let features = feat_iter
-        .clone()
-        .enumerate()
-        .map(|(idx, (pt, class, inputs))| {
+        .map(|(idx, (pt, class))| {
             let geometry = Geometry::new(geojson::Value::Point(vec![pt.x, pt.y]));
             let mut properties = point_properties(pt);
             properties.extend([(
                 "activity".to_string(),
-                JsonValue::from(classifier.activity(class)),
+                JsonValue::from(Classifier::activity(*class)),
             )]);
-            properties.extend([("inputs".to_string(), JsonValue::from(inputs))]);
             Feature {
                 id: Some(geojson::feature::Id::Number(serde_json::Number::from(idx))),
                 geometry: Some(geometry),
@@ -181,16 +117,13 @@ pub fn track_points(tracks: &[TrackData]) -> anyhow::Result<String> {
         })
         .collect();
 
-    let bbox = BboxStats::from_xy_iter(feat_iter.clone().map(|(pt, _, _)| (pt.x, pt.y))).bbox();
+    let bbox = BboxStats::from_xy_iter(points.iter().map(|pt| (pt.x, pt.y))).bbox();
 
-    let mut stats = TrackStats::from_iter(feat_iter.clone().map(|(pt, _, _)| pt)).as_properties();
+    let mut stats = TrackStats::from_iter(points.iter()).as_properties();
     stats.extend(
-        ElevationDiffStats::from_iter(feat_iter.clone().filter_map(|(pt, _, _)| pt.elevation))
-            .as_properties(),
+        ElevationDiffStats::from_iter(points.iter().filter_map(|pt| pt.elevation)).as_properties(),
     );
-    stats.extend(
-        DistanceStats::from_xy_iter(feat_iter.map(|(pt, _, _)| (pt.x, pt.y))).as_properties(),
-    );
+    stats.extend(DistanceStats::from_xy_iter(points.iter().map(|pt| (pt.x, pt.y))).as_properties());
     let stats_json = JsonObject::from_iter([("stats".to_string(), JsonValue::from(stats))]);
 
     let geojson = FeatureCollection {

@@ -218,7 +218,7 @@ async fn trackpoints(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> Http
                 .finish();
         }
     };
-    let geojson = geojson::track_points(&[track_]);
+    let geojson = geojson::track_points(&track_);
     let json = match geojson {
         Ok(json) => json,
         Err(e) => {
