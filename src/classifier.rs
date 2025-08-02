@@ -24,9 +24,9 @@ impl Classifier {
     pub fn activity(idx: u16) -> &'static str {
         let lookup = [
             "stop",
+            "car",
             "walk",
             "ski",
-            "car",
             "bike",
             "train",
             "bus",
@@ -69,14 +69,7 @@ pub fn analyze(track: &[GpsPoint]) -> Vec<u16> {
     let df = delta(df.lazy()).unwrap();
     // println!("{df}");
     let df = df
-        .select([
-            "speed",
-            "v_mean5",
-            "v_mean10",
-            "vcalc",
-            "vzcalc",
-            "vdist_center10",
-        ])
+        .select(["speed", "vmean5", "vmean10", "vcalc", "vzcalc", "vcenter10"])
         .unwrap();
     classifier.predict(&df)
 }
@@ -127,8 +120,8 @@ fn speed_loc_means(df: LazyFrame) -> LazyFrame {
         ..Default::default()
     };
     df.with_columns([
-        col("speed").rolling_mean(win5).alias("v_mean5"),
-        col("speed").rolling_mean(win10.clone()).alias("v_mean10"),
+        col("speed").rolling_mean(win5).alias("vmean5"),
+        col("speed").rolling_mean(win10.clone()).alias("vmean10"),
         // Calculate mean positions for detecting oscilating GPS positions, especially during stops
         col("latitude")
             .rolling_mean(win10.clone())
@@ -140,11 +133,6 @@ fn speed_loc_means(df: LazyFrame) -> LazyFrame {
 }
 
 fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
-    let win5 = RollingOptionsFixedWindow {
-        window_size: 5,
-        min_periods: 1,
-        ..Default::default()
-    };
     // Difference between two rows
     let deltas = df
         .lazy()
@@ -165,6 +153,14 @@ fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
                 .shift(lit(-1))
                 .fill_null(col("elevation"))
                 .alias("ele2"),
+            col("lat_mean10")
+                .shift(lit(-1))
+                .fill_null(col("lat_mean10"))
+                .alias("lat_mean10_shift"),
+            col("lon_mean10")
+                .shift(lit(-1))
+                .fill_null(col("lon_mean10"))
+                .alias("lon_mean10_shift"),
         ])
         .with_columns([
             // Python map_rows lambda:
@@ -236,28 +232,28 @@ fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
             )
             .alias("dist"),
             as_struct(vec![
-                col("latitude"),
-                col("longitude"),
                 col("lat_mean10"),
                 col("lon_mean10"),
+                col("lat_mean10_shift"),
+                col("lon_mean10_shift"),
             ])
             .map(
                 |s| {
                     let ca = s.struct_()?;
-                    let latitude_s = ca.field_by_name("latitude")?;
-                    let latitude = latitude_s.f64()?;
-                    let longitude_s = ca.field_by_name("longitude")?;
-                    let longitude = longitude_s.f64()?;
                     let lat_mean10_s = ca.field_by_name("lat_mean10")?;
                     let lat_mean10 = lat_mean10_s.f64()?;
                     let lon_mean10_s = ca.field_by_name("lon_mean10")?;
                     let lon_mean10 = lon_mean10_s.f64()?;
+                    let lat_mean10_shift_s = ca.field_by_name("lat_mean10_shift")?;
+                    let lat_mean10_shift = lat_mean10_shift_s.f64()?;
+                    let lon_mean10_shift_s = ca.field_by_name("lon_mean10_shift")?;
+                    let lon_mean10_shift = lon_mean10_shift_s.f64()?;
 
-                    let out: Int64Chunked = latitude
+                    let out: Int64Chunked = lat_mean10
                         .into_iter()
-                        .zip(longitude.into_iter())
-                        .zip(lat_mean10.into_iter())
                         .zip(lon_mean10.into_iter())
+                        .zip(lat_mean10_shift.into_iter())
+                        .zip(lon_mean10_shift.into_iter())
                         .map(|(((opt_a, opt_b), opt_c), opt_d)| {
                             match (opt_a, opt_b, opt_c, opt_d) {
                                 (Some(a), Some(b), Some(c), Some(d)) => {
@@ -304,8 +300,9 @@ fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
             (col("ele_delta").cast(DataType::Float64) / col("duration"))
                 .fill_nan(0)
                 .alias("vzcalc"),
-            (col("dist_center10").rolling_mean(win5.clone()) / col("duration").rolling_sum(win5))
-                .alias("vdist_center10"),
+            (col("dist_center10").cast(DataType::Float64) / col("duration"))
+                .fill_nan(0)
+                .alias("vcenter10"),
         ])
         .collect()?;
     Ok(deltas)
