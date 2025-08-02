@@ -27,7 +27,7 @@ fn point_properties(pt: &GpsPoint) -> JsonObject {
 
 /// Build a GeoJSON LineString FeatureCollection
 pub fn track(track: &TrackData) -> anyhow::Result<String> {
-    let (points, _classes) = preprocess(&track.points);
+    let (points, _classes) = preprocess(&track.points)?;
     let geometry = Geometry::new(geojson::Value::LineString(
         points.iter().map(|pt| vec![pt.x, pt.y]).collect(),
     ));
@@ -88,7 +88,7 @@ pub fn track_with_segments(tracks: &[TrackData]) -> anyhow::Result<String> {
 
 /// Build a GeoJSON Point FeatureCollection
 pub fn track_points(track: &TrackData) -> anyhow::Result<String> {
-    let (points, classes) = preprocess(&track.points);
+    let (points, classes) = preprocess(&track.points)?;
     let features = points
         .iter()
         .zip(classes.iter())

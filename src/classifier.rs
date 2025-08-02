@@ -1,8 +1,8 @@
 use crate::db::GpsPoint;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use geo::algorithm::vincenty_distance::VincentyDistance;
-use polars::frame::row::Row;
 use polars::prelude::*;
+use polars::{frame::row::Row, functions::concat_df_horizontal};
 use smartcore::ensemble::random_forest_classifier::RandomForestClassifier;
 use smartcore::linalg::basic::matrix::DenseMatrix;
 
@@ -39,8 +39,16 @@ impl Classifier {
 /// Preprocess raw track
 ///
 /// Returns a tuple of filtered track and corresponding activity labels.
-pub fn preprocess(track: &[GpsPoint]) -> (Vec<GpsPoint>, Vec<u16>) {
-    let y = analyze(track);
+pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)> {
+    let df = track_enriched(track)?;
+    let y = classify(&df)?;
+
+    let ys: Series = y.iter().map(|v| *v as u32).collect();
+    let ydf = df!("activity" => ys)?;
+    let df = concat_df_horizontal(&[df, ydf], true)?;
+    let sequences = sequences(df.lazy())?;
+    println!("{sequences}");
+
     let (filtered, classes): (Vec<GpsPoint>, Vec<u16>) = track
         .iter()
         .zip(y.iter())
@@ -59,22 +67,29 @@ pub fn preprocess(track: &[GpsPoint]) -> (Vec<GpsPoint>, Vec<u16>) {
         "Stop detection: removed {ndel} points ({:.2}%)",
         ndel * 100 / track.len()
     );
-    (filtered, classes)
+    Ok((filtered, classes))
 }
 
+/// Process track and classify activity
 pub fn analyze(track: &[GpsPoint]) -> Vec<u16> {
-    let classifier = Classifier::load();
-    let df = df_from_track(track);
-    let df = speed_loc_means(df.lazy());
-    let df = delta(df.lazy()).unwrap();
-    // println!("{df}");
-    let df = df
-        .select(["speed", "vmean5", "vmean10", "vcalc", "vzcalc", "vcenter10"])
-        .unwrap();
-    classifier.predict(&df)
+    let df = track_enriched(track).unwrap();
+    classify(&df).unwrap()
 }
 
-fn df_from_track(track: &[GpsPoint]) -> DataFrame {
+fn track_enriched(track: &[GpsPoint]) -> PolarsResult<DataFrame> {
+    let df = df_from_track(track)?;
+    let df = speed_loc_means(df.lazy());
+    delta(df.lazy())
+}
+
+pub fn classify(df: &DataFrame) -> PolarsResult<Vec<u16>> {
+    let classifier = Classifier::load();
+    let x = df.select(["speed", "vmean5", "vmean10", "vcalc", "vzcalc", "vcenter10"])?;
+    let y = classifier.predict(&x);
+    Ok(y)
+}
+
+fn df_from_track(track: &[GpsPoint]) -> PolarsResult<DataFrame> {
     let schema = Schema::from_iter(vec![
         Field::new(
             "timestamp".into(),
@@ -105,7 +120,7 @@ fn df_from_track(track: &[GpsPoint]) -> DataFrame {
         })
         .collect::<Vec<_>>(); // TODO: from_rows_iter_and_schema
 
-    DataFrame::from_rows_and_schema(&rows, &schema).unwrap()
+    DataFrame::from_rows_and_schema(&rows, &schema)
 }
 
 fn speed_loc_means(df: LazyFrame) -> LazyFrame {
@@ -313,6 +328,30 @@ fn distance(p1: [f64; 2], p2: [f64; 2]) -> i64 {
     let p2 = geo::Point::from(p2);
     let distance = p1.vincenty_distance(&p2).unwrap();
     distance.round() as i64
+}
+
+fn sequences(df: LazyFrame) -> PolarsResult<DataFrame> {
+    let sequences = df
+        .clone()
+        // Count sequence lengths
+        .select([col("activity").rle()])
+        .unnest([col("activity")]) // -> len, value
+        .with_columns([
+            (col("len").cum_sum(false) - col("len")).alias("min_idx"),
+            (col("len").cum_sum(false) - lit(1) - col("len").floor_div(lit(2))).alias("mid_idx"),
+            (col("len").cum_sum(false) - lit(1)).alias("max_idx"),
+        ]);
+    let joined = df
+        .with_row_index("index", None)
+        .join(
+            sequences,
+            [col("index")],
+            [col("mid_idx")],
+            JoinArgs::new(JoinType::Inner),
+        )
+        .collect()?;
+
+    Ok(joined)
 }
 
 fn matrix_from_df(df: &DataFrame) -> DenseMatrix<f64> {

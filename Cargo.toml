@@ -31,10 +31,14 @@ gpx = "0.10.0"
 log = "0.4.22"
 polars = { version = "0.49.1", default-features = false, features = [
     "lazy",
-    "rolling_window",
-    "dtype-struct",
-    "strings",
     "temporal",
+    "dtype-struct",
+    "cum_agg",
+    "diff",
+    "strings",
+    "rolling_window",
+    "round_series",
+    "rle",
     "fmt_no_tty",
 ] }
 prost = "0.13.5"
