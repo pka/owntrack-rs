@@ -2,7 +2,7 @@ use crate::db::GpsPoint;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use geo::algorithm::vincenty_distance::VincentyDistance;
 use polars::prelude::*;
-use polars::{frame::row::Row, functions::concat_df_horizontal};
+use polars::{frame::row::Row, functions::concat_df_horizontal, series::ops::NullBehavior};
 use smartcore::ensemble::random_forest_classifier::RandomForestClassifier;
 use smartcore::linalg::basic::matrix::DenseMatrix;
 
@@ -46,16 +46,88 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)>
     let ys: Series = y.iter().map(|v| *v as u32).collect();
     let ydf = df!("activity" => ys)?;
     let df = concat_df_horizontal(&[df, ydf], true)?;
-    let sequences = sequences(df.lazy())?;
-    println!("{sequences}");
+
+    let sequences = sequences(df.clone().lazy())?;
+    // println!("{sequences}");
+
+    let mut activity = df
+        .column("activity")?
+        .as_materialized_series()
+        .u32()?
+        .to_vec_null_aware()
+        .left()
+        .unwrap();
+    let latitude = df
+        .column("latitude")?
+        .as_materialized_series()
+        .f64()?
+        .to_vec_null_aware()
+        .left()
+        .unwrap();
+    let longitude = df
+        .column("longitude")?
+        .as_materialized_series()
+        .f64()?
+        .to_vec_null_aware()
+        .left()
+        .unwrap();
+
+    for row in sequences
+        .clone()
+        .lazy()
+        .filter(col("activity").eq(lit(0)).and(col("len").gt(lit(30)))) // stops
+        .select([
+            col("min_idx"),
+            col("max_idx"),
+            col("latitude"),
+            col("longitude"),
+        ])
+        .collect()?
+        .into_struct("struct".into())
+        .into_series()
+        .iter()
+    {
+        let row_values: Vec<_> = row._iter_struct_av().collect();
+        let min_idx: u32 = row_values[0].try_extract()?;
+        let max_idx: u32 = row_values[1].try_extract()?;
+        let lat_stop: f64 = row_values[2].try_extract()?;
+        let lon_stop: f64 = row_values[3].try_extract()?;
+        // forward
+        let mut idx = max_idx as usize + 1;
+        let mut is_close = true;
+        while idx < activity.len() && is_close {
+            let dist = distance([longitude[idx], latitude[idx]], [lon_stop, lat_stop]);
+            is_close = dist < 50;
+            if is_close {
+                activity[idx] = u32::MAX; // Null
+            }
+            idx += 1;
+        }
+        // backward
+        let mut idx = min_idx as usize;
+        is_close = true;
+        while idx > 0 && is_close {
+            idx -= 1;
+            let dist = distance([longitude[idx], latitude[idx]], [lon_stop, lat_stop]);
+            is_close = dist < 80;
+            if is_close {
+                activity[idx] = u32::MAX; // Null
+            }
+        }
+    }
+
+    let act: Series = activity.iter().collect();
+    let actdf = df!("act" => act)?;
+    let _df = concat_df_horizontal(&[df, actdf], true)?;
 
     let (filtered, classes): (Vec<GpsPoint>, Vec<u16>) = track
         .iter()
         .zip(y.iter())
-        .filter_map(|(point, class)| {
+        .enumerate()
+        .filter_map(|(idx, (point, class))| {
             // Collapse stops
-            // TOOD: keep frist & last point
-            if *class != 0 {
+            // TOOD: keep first & last point
+            if *class != 0 && activity[idx] != u32::MAX {
                 Some((point.clone(), *class))
             } else {
                 None
@@ -165,9 +237,10 @@ fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
                 .fill_null(col("longitude"))
                 .alias("lon2"),
             col("elevation")
+                .diff(lit(1), NullBehavior::Ignore)
                 .shift(lit(-1))
-                .fill_null(col("elevation"))
-                .alias("ele2"),
+                .fill_null(0)
+                .alias("ele_delta"),
             col("lat_mean10")
                 .shift(lit(-1))
                 .fill_null(col("lat_mean10"))
@@ -183,6 +256,7 @@ fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
             // distance.distance((t[1], t[2]), (t[n+1], t[n+2])).meters, # dist = lat,lon <-> lat2,lon2
             // distance.distance((t[1], t[2]), (t[n-2], t[n-1])).meters, # dist_center10 = lat,lon <-> lat_mean10,lon_mean10
             // t[n+3]-t[4], # ele_delta = ele2 - elevation
+            // For single column operations see also https://stackoverflow.com/a/71638091
             as_struct(vec![col("timestamp"), col("ts2")])
                 .map(
                     |s| {
@@ -284,29 +358,6 @@ fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
                 GetOutput::from_type(DataType::Int64),
             )
             .alias("dist_center10"),
-            as_struct(vec![col("elevation"), col("ele2")])
-                .map(
-                    |s| {
-                        let ca = s.struct_()?;
-                        let elevation_s = ca.field_by_name("elevation")?;
-                        let elevation = elevation_s.i64()?;
-                        let ele2_s = ca.field_by_name("ele2")?;
-                        let ele2 = ele2_s.i64()?;
-
-                        let out: Int64Chunked = elevation
-                            .into_iter()
-                            .zip(ele2.into_iter())
-                            .map(|(opt_a, opt_b)| match (opt_a, opt_b) {
-                                (Some(a), Some(b)) => Some(b - a),
-                                _ => None,
-                            })
-                            .collect();
-
-                        Ok(Some(out.into_series().into()))
-                    },
-                    GetOutput::from_type(DataType::Int64),
-                )
-                .alias("ele_delta"),
         ])
         .with_columns([
             (col("dist").cast(DataType::Float64) / col("duration"))
