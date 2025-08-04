@@ -88,12 +88,12 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)>
         .iter()
     {
         let row_values: Vec<_> = row._iter_struct_av().collect();
-        let min_idx: u32 = row_values[0].try_extract()?;
-        let max_idx: u32 = row_values[1].try_extract()?;
+        let min_idx: usize = row_values[0].try_extract()?;
+        let max_idx: usize = row_values[1].try_extract()?;
         let lat_stop: f64 = row_values[2].try_extract()?;
         let lon_stop: f64 = row_values[3].try_extract()?;
         // forward
-        let mut idx = max_idx as usize + 1;
+        let mut idx = max_idx + 1;
         let mut is_close = true;
         while idx < activity.len() && is_close {
             let dist = distance([longitude[idx], latitude[idx]], [lon_stop, lat_stop]);
@@ -103,13 +103,16 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)>
             }
             idx += 1;
         }
+        for idx in min_idx..=max_idx {
+            activity[idx] = u32::MAX; // Null
+        }
         // backward
-        let mut idx = min_idx as usize;
+        let mut idx = min_idx;
         is_close = true;
         while idx > 0 && is_close {
             idx -= 1;
             let dist = distance([longitude[idx], latitude[idx]], [lon_stop, lat_stop]);
-            is_close = dist < 80;
+            is_close = dist < 50;
             if is_close {
                 activity[idx] = u32::MAX; // Null
             }
@@ -127,7 +130,7 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)>
         .filter_map(|(idx, (point, class))| {
             // Collapse stops
             // TOOD: keep first & last point
-            if *class != 0 && activity[idx] != u32::MAX {
+            if activity[idx] != u32::MAX {
                 Some((point.clone(), *class))
             } else {
                 None
