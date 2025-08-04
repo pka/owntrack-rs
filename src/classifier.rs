@@ -1,6 +1,7 @@
 use crate::db::GpsPoint;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use geo::algorithm::vincenty_distance::VincentyDistance;
+use geojson::JsonValue;
 use polars::prelude::*;
 use polars::{frame::row::Row, functions::concat_df_horizontal, series::ops::NullBehavior};
 use smartcore::ensemble::random_forest_classifier::RandomForestClassifier;
@@ -38,8 +39,8 @@ impl Classifier {
 
 /// Preprocess raw track
 ///
-/// Returns a tuple of filtered track and corresponding activity labels.
-pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)> {
+/// Returns a tuple of filtered track.
+pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<Vec<GpsPoint>> {
     let df = track_enriched(track)?;
     let y = classify(&df)?;
 
@@ -103,6 +104,7 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)>
             }
             idx += 1;
         }
+        #[allow(clippy::needless_range_loop)]
         for idx in min_idx..=max_idx {
             activity[idx] = u32::MAX; // Null
         }
@@ -121,28 +123,52 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<(Vec<GpsPoint>, Vec<u16>)>
 
     let act: Series = activity.iter().collect();
     let actdf = df!("act" => act)?;
-    let _df = concat_df_horizontal(&[df, actdf], true)?;
+    let df = concat_df_horizontal(&[df, actdf], true)?;
 
-    let (filtered, classes): (Vec<GpsPoint>, Vec<u16>) = track
+    let filtered: Vec<GpsPoint> = df
+        .lazy()
+        .select([col("act"), col("vcalc")])
+        .collect()?
+        .into_struct("struct".into())
+        .into_series()
         .iter()
-        .zip(y.iter())
-        .enumerate()
-        .filter_map(|(idx, (point, class))| {
+        .zip(track.iter())
+        .filter_map(|(row, point)| {
+            let row_values: Vec<_> = row._iter_struct_av().collect();
+            let activity: u32 = row_values[0].try_extract().ok()?;
+            let mut vcalc: f64 = row_values[1].try_extract().ok()?;
+            vcalc *= 3.6;
+
+            let mut pt = point.clone();
+            let speed = point.speed.unwrap_or(0) as f64;
+            let vfact = vcalc.max(speed).max(1.0) / vcalc.min(speed).max(1.0);
             // Collapse stops
             // TOOD: keep first & last point
-            if activity[idx] != u32::MAX {
-                Some((point.clone(), *class))
+            if activity != u32::MAX && vfact < 5.0 && point.accuracy.unwrap_or(0) < 1000 {
+                let mut annotations: serde_json::Map<String, serde_json::Value> =
+                    serde_json::from_str(pt.annotations.as_str()).unwrap();
+                annotations.extend([
+                    (
+                        "activity".to_string(),
+                        JsonValue::from(Classifier::activity(activity as u16)),
+                    ),
+                    ("vcalc".to_string(), JsonValue::from(vcalc)),
+                    ("vfact".to_string(), JsonValue::from(vfact)),
+                ]);
+                pt.annotations = serde_json::to_string(&annotations).unwrap();
+                Some(pt)
             } else {
                 None
             }
         })
-        .unzip();
+        .collect();
+
     let ndel = track.len() - filtered.len();
     log::debug!(
         "Stop detection: removed {ndel} points ({:.2}%)",
         ndel * 100 / track.len()
     );
-    Ok((filtered, classes))
+    Ok(filtered)
 }
 
 /// Process track and classify activity

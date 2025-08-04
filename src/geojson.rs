@@ -1,4 +1,4 @@
-use crate::classifier::{preprocess, Classifier};
+use crate::classifier::preprocess;
 use crate::db::{DevicePosition, GpsPoint, TrackData};
 use crate::stats::{BboxStats, DistanceStats, ElevationDiffStats, TrackStats};
 use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
@@ -27,7 +27,7 @@ fn point_properties(pt: &GpsPoint) -> JsonObject {
 
 /// Build a GeoJSON LineString FeatureCollection
 pub fn track(track: &TrackData) -> anyhow::Result<String> {
-    let (points, _classes) = preprocess(&track.points)?;
+    let points = preprocess(&track.points)?;
     let geometry = Geometry::new(geojson::Value::LineString(
         points.iter().map(|pt| vec![pt.x, pt.y]).collect(),
     ));
@@ -88,18 +88,13 @@ pub fn track_with_segments(tracks: &[TrackData]) -> anyhow::Result<String> {
 
 /// Build a GeoJSON Point FeatureCollection
 pub fn track_points(track: &TrackData) -> anyhow::Result<String> {
-    let (points, classes) = preprocess(&track.points)?;
+    let points = preprocess(&track.points)?;
     let features = points
         .iter()
-        .zip(classes.iter())
         .enumerate()
-        .map(|(idx, (pt, class))| {
+        .map(|(idx, pt)| {
             let geometry = Geometry::new(geojson::Value::Point(vec![pt.x, pt.y]));
-            let mut properties = point_properties(pt);
-            properties.extend([(
-                "activity".to_string(),
-                JsonValue::from(Classifier::activity(*class)),
-            )]);
+            let properties = point_properties(pt);
             Feature {
                 id: Some(geojson::feature::Id::Number(serde_json::Number::from(idx))),
                 geometry: Some(geometry),
