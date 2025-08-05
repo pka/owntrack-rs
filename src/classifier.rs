@@ -298,12 +298,10 @@ fn delta(df: LazyFrame) -> PolarsResult<DataFrame> {
                         let ts2 = ts2_s.datetime()?;
 
                         let out: Int64Chunked = timestamp
-                            .into_iter()
-                            .zip(ts2.into_iter())
+                            .as_datetime_iter()
+                            .zip(ts2.as_datetime_iter())
                             .map(|(opt_a, opt_b)| match (opt_a, opt_b) {
-                                (Some(a), Some(b)) => {
-                                    Some(Duration::new(b - a).duration_ms()) // * 1000 ?
-                                }
+                                (Some(a), Some(b)) => Some((b - a).num_seconds()),
                                 _ => None,
                             })
                             .collect();
@@ -417,7 +415,7 @@ fn sequences(df: LazyFrame) -> PolarsResult<DataFrame> {
         .clone()
         // Count sequence lengths
         .select([col("activity").rle()])
-        .unnest([col("activity")]) // -> len, value
+        .unnest(Selector::Wildcard) // -> len, value
         .with_columns([
             (col("len").cum_sum(false) - col("len")).alias("min_idx"),
             (col("len").cum_sum(false) - lit(1) - col("len").floor_div(lit(2))).alias("mid_idx"),

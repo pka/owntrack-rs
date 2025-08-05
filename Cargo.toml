@@ -29,7 +29,7 @@ geojson = "0.24.1"
 gethostname = "1.0.0"
 gpx = "0.10.0"
 log = "0.4.22"
-polars = { version = "0.49.1", default-features = false, features = [
+polars = { version = "0.50.0", default-features = false, features = [
     "lazy",
     "temporal",
     "dtype-struct",
@@ -39,6 +39,7 @@ polars = { version = "0.49.1", default-features = false, features = [
     "rolling_window",
     "round_series",
     "rle",
+    "timezones",
     "fmt_no_tty",
 ] }
 prost = "0.13.5"
