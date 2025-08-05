@@ -86,6 +86,7 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<Vec<GpsPoint>> {
         .collect()?
         .into_struct("struct".into())
         .into_series()
+        .rechunk()
         .iter()
     {
         let row_values: Vec<_> = row._iter_struct_av().collect();
@@ -131,6 +132,7 @@ pub fn preprocess(track: &[GpsPoint]) -> PolarsResult<Vec<GpsPoint>> {
         .collect()?
         .into_struct("struct".into())
         .into_series()
+        .rechunk()
         .iter()
         .zip(track.iter())
         .filter_map(|(row, point)| {
