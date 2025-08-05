@@ -126,7 +126,27 @@
         <GeoJSONSource data={trackpoints}>
             <CircleLayer
                 paint={{
-                    "circle-color": "#ff0000",
+                    "circle-color": [
+                        "match",
+                        ["get", "activity"],
+                        "stop",
+                        "#00c500",
+                        "walk",
+                        "#00cdbd",
+                        "ski",
+                        "#3dc1f7",
+                        "car",
+                        "#99aaff",
+                        "bike",
+                        "#d397e2",
+                        "train",
+                        "#f28ea7",
+                        "bus",
+                        "#f09867",
+                        "paraglide",
+                        "#caaf4a",
+                        "red",
+                    ],
                     "circle-radius": 5,
                 }}
                 onmousemove={(ev) => {

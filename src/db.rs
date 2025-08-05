@@ -22,7 +22,7 @@ pub struct TrackData {
     pub points: Vec<GpsPoint>,
 }
 
-#[derive(sqlx::FromRow, Debug)]
+#[derive(sqlx::FromRow, Clone, Debug)]
 pub struct GpsPoint {
     pub y: f64,
     pub x: f64,

@@ -1,3 +1,4 @@
+mod classifier;
 pub mod db;
 mod geojson;
 mod gpx;

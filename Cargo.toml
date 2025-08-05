@@ -29,12 +29,26 @@ geojson = "0.24.1"
 gethostname = "1.0.0"
 gpx = "0.10.0"
 log = "0.4.22"
+polars = { version = "0.50.0", default-features = false, features = [
+    "lazy",
+    "temporal",
+    "dtype-struct",
+    "cum_agg",
+    "diff",
+    "strings",
+    "rolling_window",
+    "round_series",
+    "rle",
+    "timezones",
+    "fmt_no_tty",
+] }
 prost = "0.13.5"
 r2d2 = "0.8.10"
 rumqttc = { version = "0.24.0", features = ["url"] }
 rust-embed-for-web = "11.2.1"
 serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.134"
+smartcore = { version = "0.4.2", features = ["serde"] }
 sqlx = { version = "0.8.2", default-features = false, features = [
     "any",
     "macros",
@@ -52,3 +66,6 @@ tokio = { version = "1.42.0", features = ["rt-multi-thread", "macros"] }
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+#[patch.crates-io]
+#polars = { path = "../polars/crates/polars" }
