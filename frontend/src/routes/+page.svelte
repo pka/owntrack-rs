@@ -4,7 +4,7 @@
     import Trackinfo from "./Trackinfo.svelte";
     import Tracktitle from "./Tracktitle.svelte";
     import Map from "./Map.svelte";
-    import { isoDateString, isToday } from "./datetime.js";
+    import { isoDateString, isToday, utcOffsetMinutes } from "./datetime.js";
 
     let date = $state(new Date());
     let curTrack = $state();
@@ -12,7 +12,7 @@
     let positionsSelector = $derived.by(() => {
         // Show positions if date is today
         if (isToday(date)) {
-            return `date=${isoDateString(date)}`;
+            return `date=${isoDateString(date)}&tz=${utcOffsetMinutes(date)}`;
         } else {
             return null;
         }

@@ -16,6 +16,7 @@
     const { LngLatBounds } = maplibregl;
     import "maplibre-gl/dist/maplibre-gl.css";
     import { PUBLIC_BASE_URL } from "$env/static/public";
+    import { trackQuery } from "./datetime.js";
 
     let map = $state.raw();
     let positions_source = $state.raw();
@@ -153,7 +154,7 @@
     {/if}
     {#if curTrack}
         <GeoJSONSource
-            data={`${PUBLIC_BASE_URL}/track?device_id=${curTrack.device_id}&ts_start=${curTrack.ts_start}`}
+            data={`${PUBLIC_BASE_URL}/track?${trackQuery(curTrack)}`}
         >
             <LineLayer
                 paint={{

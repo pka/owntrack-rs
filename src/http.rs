@@ -8,6 +8,7 @@ use actix_web::{
     HttpServer, Responder,
 };
 use actix_web_rust_embed_responder::{EmbedResponse, EmbedableFileResponse, IntoResponse};
+use chrono::NaiveDate;
 use rust_embed_for_web::RustEmbed;
 use serde::Deserialize;
 
@@ -66,7 +67,23 @@ async fn rawjson(body: String) -> actix_web::Result<impl Responder> {
 
 #[derive(Deserialize)]
 struct TracksParams {
+    /// Local calendar date, `YYYY-MM-DD`
     date: String,
+    /// Client's offset from UTC in minutes (e.g. 660 for Australia/Sydney). Defaults to UTC.
+    tz: Option<i32>,
+}
+
+/// Parse the requested local date and the client's UTC offset in minutes.
+fn day_and_offset(params: &TracksParams) -> actix_web::Result<(NaiveDate, i32)> {
+    let date = NaiveDate::parse_from_str(&params.date, "%F")
+        .map_err(|_| error::ErrorBadRequest("date must be YYYY-MM-DD"))?;
+    let tz = params.tz.unwrap_or(0);
+    if !(-1440..=1440).contains(&tz) {
+        return Err(error::ErrorBadRequest(
+            "tz must be an offset in minutes between -1440 and 1440",
+        ));
+    }
+    Ok((date, tz))
 }
 
 #[get("/trackinfos")]
@@ -74,7 +91,8 @@ async fn trackinfos(
     db: web::Data<Db>,
     params: web::Query<TracksParams>,
 ) -> actix_web::Result<impl Responder> {
-    match db.query_tracks_info(&params.date).await {
+    let (date, tz) = day_and_offset(&params)?;
+    match db.query_tracks_info(date, tz).await {
         Ok(track_infos) => Ok(web::Json(track_infos)),
         Err(e) => {
             log::error!("{e}");
@@ -236,7 +254,11 @@ async fn trackpoints(db: web::Data<Db>, track_ref: web::Query<TrackRef>) -> Http
 /// Get GeoJSON with current device positions
 #[get("/positions")]
 async fn positions(db: web::Data<Db>, params: web::Query<TracksParams>) -> HttpResponse {
-    let positions = match db.query_positions(&params.date).await {
+    let (date, tz) = match day_and_offset(&params) {
+        Ok(parsed) => parsed,
+        Err(e) => return HttpResponse::from_error(e),
+    };
+    let positions = match db.query_positions(date, tz).await {
         Ok(data) => data,
         Err(e) => {
             log::error!("Failed to fetch positions: {e}");

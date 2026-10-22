@@ -1,5 +1,6 @@
 <script>
     import { PUBLIC_BASE_URL } from "$env/static/public";
+    import { trackQuery } from "./datetime.js";
 
     let { curTrack, setTrackpoints } = $props();
     let loader = $derived(load_trackpoints(curTrack));
@@ -7,7 +8,7 @@
     async function load_trackpoints(track) {
         if (!track) return null;
         const res = await fetch(
-            `${PUBLIC_BASE_URL}/trackpoints?device_id=${track.device_id}&ts_start=${track.ts_start}`,
+            `${PUBLIC_BASE_URL}/trackpoints?${trackQuery(track)}`,
         );
         const json = await res.json();
         setTrackpoints(json);

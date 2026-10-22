@@ -4,6 +4,8 @@
         addDays,
         isoDateString,
         isToday,
+        trackQuery,
+        utcOffsetMinutes,
         utcToLocalTime,
     } from "./datetime.js";
 
@@ -13,7 +15,7 @@
 
     async function load_infos() {
         const res = await fetch(
-            `${PUBLIC_BASE_URL}/trackinfos?date=${datestr}`,
+            `${PUBLIC_BASE_URL}/trackinfos?date=${datestr}&tz=${utcOffsetMinutes(date)}`,
         );
         const json = await res.json();
         // Select first track, if there is only one for the first day
@@ -105,8 +107,8 @@
                             {#if track_dropdown === track.device_id}
                                 <div class="dropdown-menu">
                                     <a
-                                        href="{PUBLIC_BASE_URL}/gpxtrack?device_id={track.device_id}&ts_start={encodeURIComponent(
-                                            track.ts_start,
+                                        href="{PUBLIC_BASE_URL}/gpxtrack?{trackQuery(
+                                            track,
                                         )}"
                                         class="dropdown-item"
                                         onclick={(e) => {
@@ -117,8 +119,8 @@
                                         Download GPX
                                     </a>
                                     <a
-                                        href="{PUBLIC_BASE_URL}/track?device_id={track.device_id}&ts_start={encodeURIComponent(
-                                            track.ts_start,
+                                        href="{PUBLIC_BASE_URL}/track?{trackQuery(
+                                            track,
                                         )}"
                                         class="dropdown-item"
                                         onclick={(e) => {
@@ -129,8 +131,8 @@
                                         Download GeoJSON
                                     </a>
                                     <a
-                                        href="{PUBLIC_BASE_URL}/csvtrack?device_id={track.device_id}&ts_start={encodeURIComponent(
-                                            track.ts_start,
+                                        href="{PUBLIC_BASE_URL}/csvtrack?{trackQuery(
+                                            track,
                                         )}"
                                         class="dropdown-item"
                                         onclick={(e) => {
